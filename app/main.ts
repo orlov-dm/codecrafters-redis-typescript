@@ -1,15 +1,54 @@
 import * as net from "net";
-
+import { CommandParser } from "./data/CommandParser";
+import { DataType } from "./data/types";
+import { Encoder } from "./data/Encoder";
 const PING_CMD = 'ping';
+const ECHO_CMD = 'echo';
 
 const server: net.Server = net.createServer((connection: net.Socket) => {
+  const commandParser = new CommandParser();
+  const encoder = new Encoder();
   connection.on('data', (data) => {
-    const input = data.toString().toLowerCase();    
-    let index = input.indexOf(PING_CMD);
-    while (index !== -1) {      
-      connection.write('+PONG\r\n');
-      index = input.indexOf(PING_CMD, index + PING_CMD.length);
-    }    
+    const input = data.toString();
+    const commandData = commandParser.parse(input);    
+    if (!commandData) {
+      console.error('No command data');
+      return;
+    }
+    if (commandData.type === DataType.Array) {
+      if (!commandData.value) {
+        console.warn('Empty array data');
+        return;
+      }
+      const [command, ...rest] = commandData.value;
+      if (commandParser.isString(command)) {
+        if (!command.value) {
+          console.warn('Empty string data');
+          return;
+        }
+        let reply: string | null = null;
+        switch(command.value.toLowerCase()) {
+          case PING_CMD: {
+            reply = encoder.encode({
+              type: DataType.SimpleString,
+              value: 'PONG'
+            });
+            break;
+          }
+          case ECHO_CMD: {
+            reply = rest.map(restData => {
+              if (commandParser.isString(restData)) {
+                return encoder.encode(restData);
+              }
+              return '';
+            }).join(' ')
+          }          
+        }
+        if (reply) {
+          connection.write(reply);
+        }
+      }      
+    }
   })
   connection.on("close", () => {
     connection.end();
