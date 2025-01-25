@@ -4,10 +4,13 @@ import { DataType } from "./data/types";
 import { Encoder } from "./data/Encoder";
 const PING_CMD = 'ping';
 const ECHO_CMD = 'echo';
+const GET_CMD = 'get';
+const SET_CMD = 'set';
 
 const server: net.Server = net.createServer((connection: net.Socket) => {
   const commandParser = new CommandParser();
   const encoder = new Encoder();
+  const storage: {[key: string]: string} = {};
   connection.on('data', (data) => {
     const input = data.toString();
     const commandData = commandParser.parse(input);    
@@ -41,8 +44,36 @@ const server: net.Server = net.createServer((connection: net.Socket) => {
                 return encoder.encode(restData);
               }
               return '';
-            }).join(' ')
-          }          
+            }).join(' ');
+            break;
+          }      
+          case SET_CMD: {
+            const [keyData, valueData] = rest;
+            if (commandParser.isString(keyData) && keyData.value) {
+              storage[keyData.value] = JSON.stringify(valueData.value);
+            }
+            reply = encoder.encode({
+              type: DataType.SimpleString,
+              value: 'OK'
+            });
+            break;
+          }
+          case GET_CMD: {
+            const [keyData] = rest;
+            if (commandParser.isString(keyData) && keyData.value) {
+              reply = encoder.encode({
+                type: DataType.BulkString,
+                value: JSON.parse(storage[keyData.value]),
+              });
+            } else {
+              reply = encoder.encode({
+                type: DataType.BulkString,
+                value: null,
+              });
+            }
+            
+            break;
+          }
         }
         if (reply) {
           connection.write(reply);

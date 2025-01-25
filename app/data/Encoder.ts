@@ -11,7 +11,11 @@ export class Encoder {
                  break;
             case DataType.BulkString:
                 const str = data.value ?? '';
-                parts = [DATA_PREFIXES_CONFIG[data.type].prefix + (str.length || - 1).toString(), str];
+                if (str.length) {
+                    parts = [DATA_PREFIXES_CONFIG[data.type].prefix + str.length.toString(), str];
+                } else {
+                    parts = [DATA_PREFIXES_CONFIG[data.type].prefix + '-1'];
+                }
                 break;
             default:
                 return null;
