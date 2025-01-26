@@ -7,11 +7,21 @@ const PING_CMD = 'ping';
 const ECHO_CMD = 'echo';
 const GET_CMD = 'get';
 const SET_CMD = 'set';
+const CONFIG_CMD = 'config';
+const CONFIG_DIR_CMD = 'dir';
+const CONFIG_DB_FILENAME_CMD = 'dbfilename';
+const DEFAULT_DIR = '/tmp/redis-files';
+const DEFAULT_DB_FILENAME = 'dump.rdb';
 
 const server: net.Server = net.createServer((connection: net.Socket) => {
   const commandParser = new CommandParser();
   const encoder = new Encoder();
   const storage = new Storage();
+
+  const args = process.argv;    
+  const dir = args[args.findIndex((arg) => arg.startsWith("--dir")) + 1] || DEFAULT_DIR;
+  const dbFilename = args[args.findIndex((arg) => arg.startsWith("----dbfilename")) + 1] || DEFAULT_DB_FILENAME;
+
   connection.on('data', (data) => {
     const input = data.toString();
     const commandData = commandParser.parse(input);    
@@ -66,15 +76,54 @@ const server: net.Server = net.createServer((connection: net.Socket) => {
             if (commandParser.isString(keyData) && keyData.value) {
               const getValue = storage.get(keyData.value);
               reply = encoder.encode(getValue);
-            } else {
-              reply = encoder.encode({
-                type: DataType.BulkString,
-                value: null,
-              });
             }
-            
             break;
           }
+          case CONFIG_CMD: {
+            const [subCmdData, keyData] = rest;
+            if (commandParser.isString(subCmdData) && subCmdData.value?.toLowerCase() === GET_CMD && commandParser.isString(keyData)) {
+              switch (keyData.value?.toLowerCase()) {
+                case CONFIG_DIR_CMD: 
+                  reply = encoder.encode({
+                    type: DataType.Array,
+                    value: [
+                      {
+                        type: DataType.BulkString,
+                        value: CONFIG_DIR_CMD
+                      },
+                      {
+                        type: DataType.BulkString,
+                        value: dir
+                      }
+                    ]
+                  });
+                  break;
+                case CONFIG_DB_FILENAME_CMD:
+                  reply = encoder.encode({
+                    type: DataType.Array,
+                    value: [
+                      {
+                        type: DataType.BulkString,
+                        value: CONFIG_DB_FILENAME_CMD
+                      },
+                      {
+                        type: DataType.BulkString,
+                        value: dbFilename
+                      }
+                    ]
+                  });
+                  break;
+                }              
+            }            
+            break;
+          }
+        }
+
+        if (!reply) {
+          reply = encoder.encode({
+            type: DataType.BulkString,
+            value: null,
+          });
         }
         if (reply) {
           connection.write(reply);
