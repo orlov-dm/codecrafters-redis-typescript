@@ -93,9 +93,14 @@ export interface StringData {
     value: string | null;
 }
 
+export interface IntegerData {
+    type: DataType.Integer;
+    value: number;
+}
+
 export interface ArrayData  {
     type: DataType.Array;
     value: Data[] | null;
 }
 
-export type Data = StringData | ArrayData;
+export type Data = StringData | IntegerData | ArrayData;

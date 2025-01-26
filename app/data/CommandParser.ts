@@ -26,6 +26,20 @@ export class CommandParser {
         let nextPrefixIndex = this.findNextPrefix(input, index) ?? input.length;        
         let data: Data | null = null;
         switch (type) {
+            case DataType.Integer:
+                //
+                let sign = 1;
+                if (input[index] === '-' || input[index] === '+') {
+                    if (input[index] === '-') {
+                        sign = -1;
+                    }
+                    index++;
+                }
+                data = {
+                    type,
+                    value: sign * Number(input.slice(index, nextPrefixIndex - DELIMITER.length))
+                }
+                break;
             case DataType.SimpleString:
                 // +OK\r\n                
                 data = {

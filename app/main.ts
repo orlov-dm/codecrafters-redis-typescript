@@ -2,6 +2,7 @@ import * as net from "net";
 import { CommandParser } from "./data/CommandParser";
 import { DataType } from "./data/types";
 import { Encoder } from "./data/Encoder";
+import { Storage } from "./data/Storage";
 const PING_CMD = 'ping';
 const ECHO_CMD = 'echo';
 const GET_CMD = 'get';
@@ -10,7 +11,7 @@ const SET_CMD = 'set';
 const server: net.Server = net.createServer((connection: net.Socket) => {
   const commandParser = new CommandParser();
   const encoder = new Encoder();
-  const storage: {[key: string]: string} = {};
+  const storage = new Storage();
   connection.on('data', (data) => {
     const input = data.toString();
     const commandData = commandParser.parse(input);    
@@ -48,9 +49,11 @@ const server: net.Server = net.createServer((connection: net.Socket) => {
             break;
           }      
           case SET_CMD: {
-            const [keyData, valueData] = rest;
+            const [keyData, valueData, pxData, pxValue] = rest;        
             if (commandParser.isString(keyData) && keyData.value) {
-              storage[keyData.value] = JSON.stringify(valueData.value);
+              const hasPxArg = pxData && commandParser.isString(pxData) && pxData?.value?.toLowerCase() === 'px';
+              const expirationMs = hasPxArg ? Number(pxValue.value) : 0;
+              storage.set(keyData.value, valueData, expirationMs);
             }
             reply = encoder.encode({
               type: DataType.SimpleString,
@@ -61,10 +64,8 @@ const server: net.Server = net.createServer((connection: net.Socket) => {
           case GET_CMD: {
             const [keyData] = rest;
             if (commandParser.isString(keyData) && keyData.value) {
-              reply = encoder.encode({
-                type: DataType.BulkString,
-                value: JSON.parse(storage[keyData.value]),
-              });
+              const getValue = storage.get(keyData.value);
+              reply = encoder.encode(getValue);
             } else {
               reply = encoder.encode({
                 type: DataType.BulkString,
