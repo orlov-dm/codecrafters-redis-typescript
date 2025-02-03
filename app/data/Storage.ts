@@ -1,9 +1,46 @@
-import {DataType, type Data, type StringData} from './types';
+import { RDBStorageSaver } from './RDBStorageSaver';
+import { DataType, type Data, type StringData } from './types';
+
+export interface PersistenceConfig {
+    dir: string;
+    dbFilename: string;
+}
+
+export interface StorageState {
+    data: Map<string, string>;
+    expiry: Map<string, number>;
+}
+
+const SAVE_INTERVAL_MS = 2000 * 10; 
 
 export class Storage {
-    private readonly data: Map<string, string> = new Map();
-    private readonly expiry: Map<string, number> = new Map();
+    private data: Map<string, string> = new Map();
+    private expiry: Map<string, number> = new Map();
+    private readonly rdbStorageSaver: RDBStorageSaver | null = null;
     
+    constructor(persistenceConfig?: PersistenceConfig) {
+        console.log('Storage config', persistenceConfig);
+        if (persistenceConfig) {
+            this.rdbStorageSaver = new RDBStorageSaver(persistenceConfig);            
+        }
+    }
+    
+    public async init() {
+        if (this.rdbStorageSaver) {
+            const restoredState = await this.rdbStorageSaver.restore();
+            if (restoredState) {
+                const { data, expiry } = restoredState;
+                if (data) {
+                    this.data = data;
+                }
+                if (expiry) {
+                    this.expiry = expiry;
+                }                        
+            }
+            setInterval(() => this.save(), SAVE_INTERVAL_MS);
+        }
+    }
+
     public set(key: string, value: Data, ms: number = 0) {
         try {
             this.data.set(key, JSON.stringify(value));
@@ -30,6 +67,7 @@ export class Storage {
             if (this.expiry.has(key) && this.expiry.get(key)! <= Date.now()) {
                 console.log('Returning null insted, as key has expired');
                 this.data.delete(key);
+                this.expiry.delete(key);
                 return NULL_DATA;
             }
             const value = this.data.get(key);
@@ -38,5 +76,31 @@ export class Storage {
             console.error(error);
         }
         return NULL_DATA;
+    }
+
+    public keys(search: string | null = null ): string[] {
+        const keys = this.data.keys();
+
+        if (!search) {
+            return Array.from(keys);
+        }
+        
+        const searchRE = new RegExp(search.replace('*', '.*'), 'g');
+        return Array.from(keys.filter((key) => searchRE.exec(key) !== null));
+    }
+
+    public save() {
+        if (!this.rdbStorageSaver) {
+            return;
+        }
+        console.log('data', this.data);
+        this.rdbStorageSaver.save({
+            data: this.data,
+            expiry: this.expiry
+        });
+    }
+
+    public restore() {
+
     }
 }

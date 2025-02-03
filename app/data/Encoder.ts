@@ -3,7 +3,7 @@ import { DATA_PREFIXES_CONFIG, DELIMITER, type Data, DataType } from "./types";
 export class Encoder {
     constructor() {}
     
-    public encode(data: Data, needEndDelimiter = true): string | null  {
+    public encode(data: Data, needEndDelimiter = true): string  {
         let parts;
         switch(data.type) {
             case DataType.SimpleString:
@@ -26,8 +26,15 @@ export class Encoder {
                 }
                 break;
             default:
-                return null;
+                throw(new Error('Unsupported type'));
         }
         return parts.join(DELIMITER) + (needEndDelimiter ? DELIMITER : '');
-    }    
+    }
+    
+    public convertString(value: string): Data {
+        return {
+            type: DataType.BulkString,
+            value,
+        }
+    }
 }
