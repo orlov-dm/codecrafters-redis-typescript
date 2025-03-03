@@ -1,4 +1,4 @@
-import { RDBStorageSaver } from './RDBStorageSaver';
+import { RDBStorageSaver } from '../rdb/RDBStorageSaver';
 import { DataType, type Data, type StringData } from './types';
 
 export interface PersistenceConfig {
@@ -25,9 +25,9 @@ export class Storage {
         }
     }
     
-    public async init() {
+    public init() {
         if (this.rdbStorageSaver) {
-            const restoredState = await this.rdbStorageSaver.restore();
+            const restoredState = this.rdbStorageSaver.restore();
             if (restoredState) {
                 const { data, expiry } = restoredState;
                 if (data) {
