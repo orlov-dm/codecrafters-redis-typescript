@@ -11,6 +11,7 @@ type IndexedResult<T> = {
 interface KeyValue {
     key: string,
     value: string | null,
+    expiryMs: number | null,
 }
 
 interface LengthResult {
@@ -90,12 +91,16 @@ export class RDBStorageDecoder {
             }
             if (hasDBSection && hasDBSizeSection && keyLeft) {
                 const keyValueResult = this.decodeValue(buffer, currentIndex);
-                const {key, value} = keyValueResult.value || {
+                const {key, value, expiryMs} = keyValueResult.value || {
                     key: null,
-                    value: null
+                    value: null,
+                    expiry: null,
                 };
                 if (key && value) {
                     data.set(key, value);
+                    if (expiryMs !== null) {
+                        expiry.set(key, expiryMs)
+                    }
                 }
                 currentIndex = keyValueResult.index;
                 --keyLeft;
@@ -111,25 +116,53 @@ export class RDBStorageDecoder {
 
     public decodeValue(buffer: Buffer<ArrayBufferLike>, index: number): IndexedResult<KeyValue | null> {
         let currentIndex = index;
-        const type = buffer.readUint8(index);
+        let type = buffer.readUint8(index);
         ++currentIndex;
+
+        // has expiry
+        let expiryMs: number | null = null;
+        if (type === RDBStorage.EXPIRY_SECONDS_FLAG || type == RDBStorage.EXPIRY_MILISECONDS_FLAG) {
+            console.log('has expiry', type.toString(16), currentIndex);
+            switch (type) {
+                case RDBStorage.EXPIRY_MILISECONDS_FLAG:
+                    expiryMs = Number(buffer.readBigInt64LE(currentIndex));
+                    currentIndex += 8;
+                    console.log('MS expiry', currentIndex);
+                    break;
+                case RDBStorage.EXPIRY_SECONDS_FLAG:
+                    expiryMs = buffer.readUInt32LE(currentIndex) * 1000;
+                    currentIndex += 4;
+                    console.log('S expiry', currentIndex);
+                    break;
+                default:
+                    console.error('Unknown expiry flag');
+                    throw new Error('Unknown expiry flag');
+            }
+            console.log('expiry is', expiryMs, new Date(expiryMs));
+            type = buffer.readUint8(currentIndex);
+            ++currentIndex;
+        }
+
+
         switch (type) {
             case RDBStorage.STRING_TYPE:
+                console.log('string type', type.toString(16));
                 const key = this.decodeString(buffer, currentIndex);
                 const value = this.decodeString(buffer, key.index);
                 return {
                     value: {
                         key: key.value,
-                        value: value.value
+                        value: value.value,
+                        expiryMs,
                     },
                     index: value.index
                 };            
             default:
-                console.error('unknown value type', type);
+                console.error('unknown value type', type.toString(16), type.toString(2));
         }
         return {
             value: null,
-            index: currentIndex
+            index: currentIndex,
         };
     }
 

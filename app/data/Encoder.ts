@@ -28,7 +28,7 @@ export class Encoder {
                     if (arr.length) {                
                         parts = [prefix + arr.length.toString(), ...(data ? data.map(item => this.encode(item, false)) : [])]
                     } else {
-                        parts = [prefix + '-1'];
+                        parts = [prefix + '0'];
                     }
                 } else {
                     console.error('data', data);

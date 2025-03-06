@@ -1,4 +1,6 @@
+import { buffer } from "stream/consumers";
 import type { StorageState } from "../data/Storage";
+import type { InternalValueType } from "../data/types";
 import { RDBStorage } from "./const";
 
 
@@ -32,10 +34,11 @@ export class RDBStorageEncoder {
         ]);
         const keyParts: Uint8Array[] = [...storage.data.entries()].map(([key, value]) => {
             const typeByte = Uint8Array.from([RDBStorage.STRING_TYPE]);
+            const expiryMs = storage.expiry.get(key) ?? null;
             const part: Uint8Array = Buffer.concat([
                 typeByte,
                 this.encodeString(key),
-                this.encodeString(value),
+                this.encodeValue(value, expiryMs),
             ]);
             return part;
         });
@@ -90,7 +93,31 @@ export class RDBStorageEncoder {
         }        
     }
 
-    private encodeString(value: string): Uint8Array {
+    private encodeValue(value: InternalValueType, expiryMs: number | null): Buffer {
+        let valuePart: Buffer | null = null;
+        let expiryPart: Buffer | null = null;
+        switch (typeof value) {
+            case 'string': {
+                valuePart = this.encodeString(value);
+                break;
+            }
+            default:
+                throw new Error('Encoding: not supported value type');
+        }
+
+        if (expiryMs) {
+            expiryPart = Buffer.alloc(9);            
+            expiryPart.writeUInt8(RDBStorage.EXPIRY_MILISECONDS_FLAG);
+            expiryPart.writeBigUInt64LE(BigInt(expiryMs));
+        }
+
+        return Buffer.concat([
+            expiryPart,
+            valuePart
+        ].filter(part => !!part));
+    }
+
+    private encodeString(value: string): Buffer {
         if (Number.isInteger(Number(value))) {
             console.log('String is int');
             const num = Number(value);
