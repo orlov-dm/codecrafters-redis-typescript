@@ -8,7 +8,6 @@ export class Encoder {
         if (!data) {
             return [DATA_PREFIXES_CONFIG[DataType.BulkString].prefix + '-1'].join(DELIMITER) + (needEndDelimiter ? DELIMITER : '');
         }
-        console.log('typeof data', typeof data);
         switch(typeof data) {
             case 'string':  {
                 const str = data ?? '';
@@ -21,7 +20,6 @@ export class Encoder {
                 break;
             }
             case 'object':  {
-            // case DataType.Array:
                 if (Array.isArray(data)) {
                     const arr = data ?? [];
                     const prefix = DATA_PREFIXES_CONFIG[DataType.Array].prefix;

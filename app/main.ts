@@ -15,6 +15,7 @@ const CONFIG_DB_FILENAME_CMD = 'dbfilename';
 const KEYS_CMD = 'keys';
 const DEFAULT_DIR = '/tmp/redis-files';
 const DEFAULT_DB_FILENAME = 'dump.rdb';
+const DEFAULT_PORT = 6379;
 
 const commandParser = new CommandParser();
 const encoder = new Encoder();
@@ -23,14 +24,21 @@ let dir = DEFAULT_DIR;
 const dirIndex = args.findIndex((arg) => arg.startsWith("--dir"));
 if (dirIndex !== -1) {
   dir = args[dirIndex + 1];
-  console.log('dir found', args[dirIndex + 1], args);
+  console.log('dir found', dir);
 }
 let dbFilename = DEFAULT_DB_FILENAME; 
 const dbIndex = args.findIndex((arg) => arg.startsWith("--dbfilename"));
 if (dbIndex !== -1) {
   dbFilename = args[dbIndex + 1];
-  console.log('dbfilename found', args[dbIndex + 1], args);
+  console.log('dbfilename found', dbFilename);
 }
+let port = DEFAULT_PORT;
+const portIndex = args.findIndex((arg) => arg.startsWith("--port"));
+if (portIndex !== -1) {
+  port = Number(args[portIndex + 1]);
+  console.log('port found', port);
+}
+
 const storage: Storage = new Storage({
   dir,
   dbFilename
@@ -144,4 +152,4 @@ process.on( 'SIGINT', function() {
   process.exit( );
 })
 
-server.listen(6379, "127.0.0.1");
+server.listen(port, "127.0.0.1");
