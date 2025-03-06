@@ -13,6 +13,8 @@ const CONFIG_CMD = 'config';
 const CONFIG_DIR_CMD = 'dir';
 const CONFIG_DB_FILENAME_CMD = 'dbfilename';
 const KEYS_CMD = 'keys';
+const INFO_CMD = 'info';
+const INFO_REPLICATION_CMD = 'replication';
 const DEFAULT_DIR = '/tmp/redis-files';
 const DEFAULT_DB_FILENAME = 'dump.rdb';
 const DEFAULT_PORT = 6379;
@@ -124,6 +126,13 @@ const server: net.Server = net.createServer((connection: net.Socket) => {
             }
             break;
           }
+          case INFO_CMD: {
+            const [subCmdData] = rest;
+            if (isString(subCmdData) && subCmdData.value === INFO_REPLICATION_CMD) {
+              const role = port === DEFAULT_PORT ? 'master' : 'slave';
+              reply = encoder.encode(`role:${role}`);
+            }
+          }        
         }
 
         if (!reply) {
