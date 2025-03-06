@@ -50,10 +50,13 @@ export class RDBStorageEncoder {
         return Uint8Array.from([RDBStorage.EOF_FLAG]);
     }
 
-    private encodeLength(length: number): Uint8Array {
+    private encodeLength(length: number): Buffer {
         if (length < 64) {
             // Single-byte length (6-bit)
-            return Uint8Array.from([length]);
+            const buffer = Buffer.alloc(1);
+            const encodedValue = (0b00 << 6) | length
+            buffer.writeUInt8(encodedValue)
+            return buffer;
         } else if (length < 16384) {
             const buffer = Buffer.alloc(2); // Create a 2-byte buffer        
             const encodedValue = (0b01 << 14) | length; // Combine prefix with number
@@ -67,8 +70,36 @@ export class RDBStorageEncoder {
             return buffer;
         }
     }
+    
+    private encodeStringIntegerAsLength(value: number) {
+        console.log('encoding str as int', value);
+        if (value >= -128 && value <= 127) {    
+            return Buffer.from([0xC0, value & 0xFF]);            
+        } else  if (value >= -32768 && value <= 32767) {
+            const buffer = Buffer.alloc(3);
+            buffer.writeUInt8(0xC1, 0);
+            buffer.writeInt16LE(value, 1);
+            return buffer;
+        } else if (value >= -2147483648 && value <= 2147483647) {     
+            const buffer = Buffer.alloc(5);
+            buffer.writeUint8(0xC2, 0);
+            buffer.writeInt32LE(value, 1);       
+            return buffer;
+        } else {
+            throw new RangeError(`Value ${value} is out of range for integer encoding.`);
+        }        
+    }
 
     private encodeString(value: string): Uint8Array {
+        if (Number.isInteger(Number(value))) {
+            console.log('String is int');
+            const num = Number(value);
+            try {
+                return this.encodeStringIntegerAsLength(num);
+            } catch(e: any) {
+                // use original string encoding instead
+            }
+        }
         const stringLength = this.encodeLength(value.length);
         return Buffer.concat([
             stringLength, // Type

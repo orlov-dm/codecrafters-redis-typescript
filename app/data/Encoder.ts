@@ -1,40 +1,44 @@
-import { DATA_PREFIXES_CONFIG, DELIMITER, type Data, DataType } from "./types";
+import { DATA_PREFIXES_CONFIG, DELIMITER, type Data, DataType, type InternalValueType } from "./types";
 
 export class Encoder {
     constructor() {}
     
-    public encode(data: Data, needEndDelimiter = true): string  {
+    public encode(data: InternalValueType | null, needEndDelimiter = true): string  {
         let parts;
-        switch(data.type) {
-            case DataType.SimpleString:
-                 parts = [DATA_PREFIXES_CONFIG[data.type].prefix + data.value];
-                 break;
-            case DataType.BulkString:
-                const str = data.value ?? '';
+        if (!data) {
+            return [DATA_PREFIXES_CONFIG[DataType.BulkString].prefix + '-1'].join(DELIMITER) + (needEndDelimiter ? DELIMITER : '');
+        }
+        console.log('typeof data', typeof data);
+        switch(typeof data) {
+            case 'string':  {
+                const str = data ?? '';
+                const prefix = DATA_PREFIXES_CONFIG[DataType.BulkString].prefix; 
                 if (str.length) {
-                    parts = [DATA_PREFIXES_CONFIG[data.type].prefix + str.length.toString(), str];
+                    parts = [prefix + str.length.toString(), str];
                 } else {
-                    parts = [DATA_PREFIXES_CONFIG[data.type].prefix + '-1'];
+                    parts = [prefix + '-1'];
                 }
                 break;
-            case DataType.Array:
-                const arr = data.value ?? [];
-                if (arr.length) {                
-                    parts = [DATA_PREFIXES_CONFIG[data.type].prefix + arr.length.toString(), ...(data.value ? data.value.map(data => this.encode(data, false)) : [])]
+            }
+            case 'object':  {
+            // case DataType.Array:
+                if (Array.isArray(data)) {
+                    const arr = data ?? [];
+                    const prefix = DATA_PREFIXES_CONFIG[DataType.Array].prefix;
+                    if (arr.length) {                
+                        parts = [prefix + arr.length.toString(), ...(data ? data.map(item => this.encode(item, false)) : [])]
+                    } else {
+                        parts = [prefix + '-1'];
+                    }
                 } else {
-                    parts = [DATA_PREFIXES_CONFIG[data.type].prefix + '-1'];
+                    console.error('data', data);
+                    throw(new Error('Unsupported object type'));
                 }
                 break;
+            }
             default:
                 throw(new Error('Unsupported type'));
         }
         return parts.join(DELIMITER) + (needEndDelimiter ? DELIMITER : '');
-    }
-    
-    public convertString(value: string): Data {
-        return {
-            type: DataType.BulkString,
-            value,
-        }
     }
 }

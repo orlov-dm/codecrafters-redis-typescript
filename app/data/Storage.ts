@@ -1,5 +1,6 @@
 import { RDBStorageSaver } from '../rdb/RDBStorageSaver';
-import { DataType, type Data, type StringData } from './types';
+import { isString } from './helpers';
+import { DataType, type Data, type InternalValueType, type StringData } from './types';
 
 export interface PersistenceConfig {
     dir: string;
@@ -7,14 +8,14 @@ export interface PersistenceConfig {
 }
 
 export interface StorageState {
-    data: Map<string, string>;
+    data: Map<string, InternalValueType>;
     expiry: Map<string, number>;
 }
 
 const SAVE_INTERVAL_MS = 2000 * 10; 
 
 export class Storage {
-    private data: Map<string, string> = new Map();
+    private data: Map<string, InternalValueType> = new Map();
     private expiry: Map<string, number> = new Map();
     private readonly rdbStorageSaver: RDBStorageSaver | null = null;
     
@@ -26,6 +27,7 @@ export class Storage {
     }
     
     public init() {
+        console.log('Storage init');
         if (this.rdbStorageSaver) {
             const restoredState = this.rdbStorageSaver.restore();
             if (restoredState) {
@@ -43,7 +45,11 @@ export class Storage {
 
     public set(key: string, value: Data, ms: number = 0) {
         try {
-            this.data.set(key, JSON.stringify(value));
+            if (isString(value)) {
+                this.data.set(key, value.value);
+            } else {
+                this.data.set(key, JSON.stringify(value));
+            }
             if (ms) {
                 this.expiry.set(key, Date.now() + ms);
                 console.log('Expiry is set for key', key, ms);
@@ -55,27 +61,23 @@ export class Storage {
         return false;
     }
 
-    public get(key: string): Data {
-        const NULL_DATA: StringData = {
-            type: DataType.BulkString,
-            value: null,
-        };
+    public get(key: string): InternalValueType | null {
         try { 
             if (!this.data.has(key)) {
-                return NULL_DATA;
+                return null;
             }
             if (this.expiry.has(key) && this.expiry.get(key)! <= Date.now()) {
                 console.log('Returning null insted, as key has expired');
                 this.data.delete(key);
                 this.expiry.delete(key);
-                return NULL_DATA;
+                return null;
             }
             const value = this.data.get(key);
-            return value ? JSON.parse(value) : NULL_DATA;
+            return value ?? null;
         } catch (error) {
             console.error(error);
         }
-        return NULL_DATA;
+        return null;
     }
 
     public keys(search: string | null = null ): string[] {

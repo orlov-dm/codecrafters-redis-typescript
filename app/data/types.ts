@@ -90,7 +90,7 @@ export const DATA_PREFIXES_CONFIG = {
 
 export interface StringData {
     type: UnifiedString;
-    value: string | null;
+    value: string;
 }
 
 export interface IntegerData {
@@ -100,7 +100,9 @@ export interface IntegerData {
 
 export interface ArrayData  {
     type: DataType.Array;
-    value: Data[] | null;
+    value: Data[];
 }
 
 export type Data = StringData | IntegerData | ArrayData;
+
+export type InternalValueType = string | Array<InternalValueType>;

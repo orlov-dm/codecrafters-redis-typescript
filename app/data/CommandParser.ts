@@ -9,12 +9,6 @@ export class CommandParser {
         return result;
     }
 
-    public isString(data: Data): data is StringData {
-        return data.type === DataType.SimpleString ||
-            data.type === DataType.VerbatimString ||
-            data.type === DataType.BulkString;            
-    }
-
     private parseElement(input: string, index: number = 0): [Data | null, number] {
         const [firstChar] = input[index];
         index++;
@@ -60,10 +54,7 @@ export class CommandParser {
                     break;
                 }
                 if (strLength === -1) {
-                    data = {
-                        type,
-                        value: null
-                    };
+                    data = null;
                     break;
                 }
                 index = strLengthEndIndex + DELIMITER.length;
@@ -85,10 +76,7 @@ export class CommandParser {
                     break;
                 }
                 if (arrLength === -1) {
-                    data = {
-                        type,
-                        value: null
-                    };
+                    data = null;
                     break;
                 }
                 const arrayData: Data[] = [];

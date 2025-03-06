@@ -1,5 +1,5 @@
 import type { PersistenceConfig, StorageState } from "../data/Storage";
-import { readFileSync, writeFileSync } from "fs";
+import { readFileSync, writeFileSync, existsSync } from "fs";
 import { RDBStorageEncoder } from "./RDBStorageEncoder";
 import { RDBStorageDecoder } from "./RDBStorageDecoder";
 import { RDBStorage } from "./const";
@@ -33,7 +33,6 @@ export class RDBStorageSaver {
     public restore(): StorageState | null {
         try {
             console.log('restoring file', this.filePath);
-
             const buffer = readFileSync(this.filePath);            
             const header = this.decoder.decodeHeader(buffer);
             if (header.value !== (RDBStorage.MAGIC_STRING + RDBStorage.MAGIC_STRING_VER)) {
