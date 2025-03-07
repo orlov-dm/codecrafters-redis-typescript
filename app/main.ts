@@ -5,6 +5,7 @@ import { Encoder } from "./data/Encoder";
 import { Storage } from "./data/Storage";
 import { encode } from "punycode";
 import { isString } from "./data/helpers";
+import { ArgumentsReader } from "./server/ArgumentsReader";
 const PING_CMD = 'ping';
 const ECHO_CMD = 'echo';
 const GET_CMD = 'get';
@@ -15,41 +16,19 @@ const CONFIG_DB_FILENAME_CMD = 'dbfilename';
 const KEYS_CMD = 'keys';
 const INFO_CMD = 'info';
 const INFO_REPLICATION_CMD = 'replication';
-const DEFAULT_DIR = '/tmp/redis-files';
-const DEFAULT_DB_FILENAME = 'dump.rdb';
-const DEFAULT_PORT = 6379;
 
 const commandParser = new CommandParser();
 const encoder = new Encoder();
-const args = process.argv;    
-let dir = DEFAULT_DIR;
-const dirIndex = args.findIndex((arg) => arg.startsWith("--dir"));
-if (dirIndex !== -1) {
-  dir = args[dirIndex + 1];
-  console.log('dir found', dir);
-}
-let dbFilename = DEFAULT_DB_FILENAME; 
-const dbIndex = args.findIndex((arg) => arg.startsWith("--dbfilename"));
-if (dbIndex !== -1) {
-  dbFilename = args[dbIndex + 1];
-  console.log('dbfilename found', dbFilename);
-}
-let port = DEFAULT_PORT;
-const portIndex = args.findIndex((arg) => arg.startsWith("--port"));
-if (portIndex !== -1) {
-  port = Number(args[portIndex + 1]);
-  console.log('port found', port);
-}
+const argumentsReader = new ArgumentsReader(process.argv);
+const args = argumentsReader.getArguments();
 
 const storage: Storage = new Storage({
-  dir,
-  dbFilename
+  dir: args.dir,
+  dbFilename: args.dbfilename
 });
 storage.init();
 
-console.log('Creating server');
-console.log('dir', dir);
-console.log('db', dbFilename);
+console.log('Creating server', args, storage);
 
 const server: net.Server = net.createServer((connection: net.Socket) => {
   connection.on('data', (data) => {
@@ -109,10 +88,10 @@ const server: net.Server = net.createServer((connection: net.Socket) => {
             if (isString(subCmdData) && subCmdData.value?.toLowerCase() === GET_CMD && isString(keyData)) {
               switch (keyData.value?.toLowerCase()) {
                 case CONFIG_DIR_CMD: 
-                  reply = encoder.encode([CONFIG_DIR_CMD, dir]);
+                  reply = encoder.encode([CONFIG_DIR_CMD, args.dir]);
                   break;
                 case CONFIG_DB_FILENAME_CMD:
-                  reply = encoder.encode([CONFIG_DB_FILENAME_CMD, dbFilename]);
+                  reply = encoder.encode([CONFIG_DB_FILENAME_CMD, args.dbfilename]);
                   break;
                 }              
             }            
@@ -129,7 +108,7 @@ const server: net.Server = net.createServer((connection: net.Socket) => {
           case INFO_CMD: {
             const [subCmdData] = rest;
             if (isString(subCmdData) && subCmdData.value === INFO_REPLICATION_CMD) {
-              const role = port === DEFAULT_PORT ? 'master' : 'slave';
+              const role = !args.replicaof ? 'master' : 'slave';
               reply = encoder.encode(`role:${role}`);
             }
           }        
@@ -161,4 +140,4 @@ process.on( 'SIGINT', function() {
   process.exit( );
 })
 
-server.listen(port, "127.0.0.1");
+server.listen(args.port, "127.0.0.1");
