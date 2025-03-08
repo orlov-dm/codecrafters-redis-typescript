@@ -1,11 +1,12 @@
 import * as net from "net";
 import { CommandParser } from "./data/CommandParser";
-import { DataType } from "./data/types";
+import { DataType, DELIMITER } from "./data/types";
 import { Encoder } from "./data/Encoder";
 import { Storage } from "./data/Storage";
 import { encode } from "punycode";
 import { isString } from "./data/helpers";
 import { ArgumentsReader } from "./server/ArgumentsReader";
+import crypto from "crypto";
 const PING_CMD = 'ping';
 const ECHO_CMD = 'echo';
 const GET_CMD = 'get';
@@ -27,6 +28,9 @@ const storage: Storage = new Storage({
   dbFilename: args.dbfilename
 });
 storage.init();
+
+const serverId = crypto.randomUUID();
+const replicationOffset = 0;
 
 console.log('Creating server', args, storage);
 
@@ -109,7 +113,12 @@ const server: net.Server = net.createServer((connection: net.Socket) => {
             const [subCmdData] = rest;
             if (isString(subCmdData) && subCmdData.value === INFO_REPLICATION_CMD) {
               const role = !args.replicaof ? 'master' : 'slave';
-              reply = encoder.encode(`role:${role}`);
+              const info = [
+                `role:${role}`,      
+                `master_replid:${serverId}`,
+                `master_repl_offset:${replicationOffset}`
+              ];                
+              reply = encoder.encode(info.join(DELIMITER));
             }
           }        
         }
