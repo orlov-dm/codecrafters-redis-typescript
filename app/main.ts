@@ -31,6 +31,8 @@ storage.init();
 
 const serverId = crypto.randomUUID();
 const replicationOffset = 0;
+const [masterHost, masterPortString] = args.replicaof ? args.replicaof.split(' ') : [null, null];
+const masterPort = masterPortString ? Number(masterPortString): null;
 
 console.log('Creating server', args, storage);
 
@@ -136,6 +138,13 @@ const server: net.Server = net.createServer((connection: net.Socket) => {
     connection.end();
   });  
 });
+
+if (masterHost && masterPort) {
+  const client = net.createConnection(masterPort, masterHost, () => {
+    console.log('Connected to server');
+    client.write(encoder.encode([PING_CMD]));
+  });
+}
 
 process.on( 'SIGINT', function() {
   console.log( "\nGracefully shutting down from SIGINT (Ctrl-C)" );
