@@ -38,13 +38,14 @@ export class RDBStorageSaver {
             if (header.value !== (RDBStorage.MAGIC_STRING + RDBStorage.MAGIC_STRING_VER)) {
                 console.error("Magic string doesn't exist", header);
                 return null;
+            }                      
+            let metadata = this.decoder.decodeMetadata(buffer, header.index);
+            while (metadata.value) {
+                metadata = this.decoder.decodeMetadata(buffer, metadata.index)
+                console.log('metadata', metadata.value, metadata.index);                
             }
-            const metadata = this.decoder.decodeMetadata(buffer, header.index);
-            if (metadata.value === null) {
-                console.error("Metadata section doesn't exist");
-                return null;
-            }
-            console.log('header and metadata', header.value, metadata.value);
+            
+            console.log('header and metadata', header.value);
                         
             const storage = this.decoder.decodeDatabase(buffer, metadata.index);
 

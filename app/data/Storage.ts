@@ -101,8 +101,4 @@ export class Storage {
             expiry: this.expiry
         });
     }
-
-    public restore() {
-
-    }
 }

@@ -34,11 +34,10 @@ export class RDBStorageDecoder {
 
     public decodeMetadata(buffer: Buffer<ArrayBufferLike>, index: number): IndexedResult<string | null> {
         let currentIndex = index;
-        if (buffer[currentIndex] === RDBStorage.METADATA_SECTION_FLAG) {
+        if (buffer[currentIndex] === RDBStorage.METADATA_SECTION_FLAG) {            
             ++currentIndex;
             const redisVerParam = this.decodeString(buffer, currentIndex);
             const redisVer = this.decodeString(buffer, redisVerParam.index);
-            console.log('redis', redisVerParam, redisVer);
             return {
                 value: redisVerParam.value + redisVer.value,
                 index: redisVer.index
@@ -46,7 +45,7 @@ export class RDBStorageDecoder {
         }
         return {
             value: null,
-            index: index + 1,
+            index: index,
         };
     }
 
@@ -66,21 +65,26 @@ export class RDBStorageDecoder {
         let hasDBSizeSection = false;
         let keyLeft: number = 0;
         while (currentIndex < buffer.length) {
-            const currentByte = buffer[currentIndex];            
+            const currentByte = buffer[currentIndex];
+            console.log('Byte', currentByte.toString(16));        
             switch (currentByte) {
                 case RDBStorage.DATABASE_SECTION_FLAG:
                     ++currentIndex;
-                    hasDBSection = true;            
+                    hasDBSection = true;
+                    console.log('Found Database Section');
                     break;
-                case RDBStorage.DATABASE_SIZE_SECTION_FLAG:
+                case RDBStorage.DATABASE_SIZE_SECTION_FLAG:                    
                     hasDBSizeSection = true;
                     ++currentIndex;
                     const keyCount = this.decodeLength(buffer, currentIndex);
                     keyLeft = keyCount.value.length;
                     const expiresCount = this.decodeLength(buffer, keyCount.index)
                     currentIndex = expiresCount.index;
+
+                    console.log('Found Database Size Section: keys ', keyCount, ', expires: ', expiresCount);
                     break;
                 case RDBStorage.EOF_FLAG:
+                    console.log('Found EOF');
                     if (keyLeft) {
                         console.warn('Key left to parse, but we have EOF', keyLeft);                        
                     }
@@ -90,6 +94,7 @@ export class RDBStorageDecoder {
                     };    
             }
             if (hasDBSection && hasDBSizeSection && keyLeft) {
+                console.log('Parsing db values');
                 const keyValueResult = this.decodeValue(buffer, currentIndex);
                 const {key, value, expiryMs} = keyValueResult.value || {
                     key: null,
@@ -195,7 +200,7 @@ export class RDBStorageDecoder {
                 break;
             case 0b11:
                 const prefix = buffer.readUIntBE(currentIndex, 1);
-                console.log('Prefix', prefix.toString(16));
+                console.log('Prefix', prefix.toString(16), currentIndex);
                 switch (prefix) {
                     case 0xC0:
                         length = buffer.readUIntBE(currentIndex + 1, 1);
@@ -229,9 +234,10 @@ export class RDBStorageDecoder {
             index: currentIndex,            
         } = decodedLength;
         if (lengthValue.isStringValue) {
+            console.log('Found string value for length', currentIndex)
             return {
                 value: lengthValue.length.toString(),
-                index: currentIndex + decodedLength.index
+                index: currentIndex
             };
         }
         return {
