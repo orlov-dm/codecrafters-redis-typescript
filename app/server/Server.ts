@@ -4,7 +4,7 @@ import { Storage } from '../data/Storage';
 import { CommandParser } from '../data/CommandParser';
 import { DataType, DELIMITER } from '../data/types';
 import { isString } from '../data/helpers';
-import { Commands, LOCALHOST, Responses } from './const';
+import { Commands, LOCALHOST, Responses, UNKNOWN } from './const';
 import type { Arguments, ArgumentsReader } from './ArgumentsReader';
 
 interface ServerConfig {
@@ -181,6 +181,19 @@ export class Server {
                             reply = this.encoder.encode(Responses.RESPONSE_OK);
                         }
                         break;
+                    }
+                    case Commands.PSYNC_CMD: {
+                        const [replIdData, replOffsetData] = rest;
+                        if (
+                            isString(replIdData) &&
+                            replIdData.value === UNKNOWN &&
+                            isString(replOffsetData) &&
+                            replOffsetData.value === '-1'
+                        ) {
+                            reply = this.encoder.encode(
+                                `${Responses.RESPONSE_FULLRESYNC} ${this.serverId} ${this.replicationOffset}`
+                            );
+                        }
                     }
                 }
 

@@ -19,11 +19,14 @@ export namespace Commands {
     export const REPLCONF_CMD = 'replconf';
     export const REPLCONF_LISTENING_PORT_CMD = 'listening-port';
     export const REPLCONF_CAPABILITIES_CMD = 'capa';
+    export const PSYNC_CMD = 'psync'
 }
 
 export namespace Responses {
     export const RESPONSE_OK = 'OK';
     export const RESPONSE_PONG = 'PONG';
+    export const RESPONSE_FULLRESYNC = 'FULLRESYNC';
 }
 
+export const UNKNOWN = '?';
 export const LOCALHOST = '127.0.0.1';

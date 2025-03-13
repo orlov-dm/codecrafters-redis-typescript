@@ -1,7 +1,7 @@
 import * as net from 'net';
 import type { Encoder } from '../data/Encoder';
 import type { CommandParser } from '../data/CommandParser';
-import { Commands, Responses } from '../server/const';
+import { Commands, Responses, UNKNOWN } from '../server/const';
 import { isString } from '../data/helpers';
 
 interface Config {
@@ -49,6 +49,7 @@ export class Client {
                     Commands.REPLCONF_CAPABILITIES_CMD,
                     this.capabilities,
                 ],
+                [Commands.PSYNC_CMD, UNKNOWN, '-1'],
             ]
         );
     }
