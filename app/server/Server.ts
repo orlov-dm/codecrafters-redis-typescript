@@ -60,7 +60,10 @@ export class Server {
                 let reply: string | null = null;
                 switch (command.value.toLowerCase()) {
                     case Commands.PING_CMD: {
-                        reply = this.encoder.encode(Responses.RESPONSE_PONG);
+                        reply = this.encoder.encode(
+                            Responses.RESPONSE_PONG,
+                            DataType.SimpleString
+                        );
                         break;
                     }
                     case Commands.ECHO_CMD: {
@@ -96,7 +99,10 @@ export class Server {
                                 expirationMs
                             );
                         }
-                        reply = this.encoder.encode(Responses.RESPONSE_OK);
+                        reply = this.encoder.encode(
+                            Responses.RESPONSE_OK,
+                            DataType.SimpleString
+                        );
                         break;
                     }
                     case Commands.GET_CMD: {
@@ -178,7 +184,10 @@ export class Server {
                                     break;
                                 }
                             }
-                            reply = this.encoder.encode(Responses.RESPONSE_OK);
+                            reply = this.encoder.encode(
+                                Responses.RESPONSE_OK,
+                                DataType.SimpleString
+                            );
                         }
                         break;
                     }
@@ -191,7 +200,8 @@ export class Server {
                             replOffsetData.value === '-1'
                         ) {
                             reply = this.encoder.encode(
-                                `${Responses.RESPONSE_FULLRESYNC} ${this.serverId} ${this.replicationOffset}`
+                                `${Responses.RESPONSE_FULLRESYNC} ${this.serverId} ${this.replicationOffset}`,
+                                DataType.SimpleString
                             );
                         }
                     }

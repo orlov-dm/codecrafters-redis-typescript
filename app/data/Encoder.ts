@@ -11,6 +11,7 @@ export class Encoder {
 
     public encode(
         data: InternalValueType | null,
+        enforceDataType: DataType | null = null,
         needEndDelimiter = true
     ): string {
         let parts;
@@ -24,7 +25,19 @@ export class Encoder {
         switch (typeof data) {
             case 'string': {
                 const str = data ?? '';
-                const prefix = DATA_PREFIXES_CONFIG[DataType.BulkString].prefix;
+                let dataType = DataType.BulkString;
+                if (enforceDataType) {
+                    if (Encoder.isStringDataType(enforceDataType)) {
+                        dataType = enforceDataType;
+                    } else {
+                        console.warn(
+                            'Encoder: enforced data type is wrong',
+                            typeof data,
+                            enforceDataType
+                        );
+                    }
+                }
+                const prefix = DATA_PREFIXES_CONFIG[dataType].prefix;
                 if (str.length) {
                     parts = [prefix + str.length.toString(), str];
                 } else {
@@ -34,13 +47,20 @@ export class Encoder {
             }
             case 'object': {
                 if (Array.isArray(data)) {
+                    if (enforceDataType) {
+                        console.warn(
+                            'Encoder: enforced data type is set for array, not supported'
+                        );
+                    }
                     const arr = data ?? [];
                     const prefix = DATA_PREFIXES_CONFIG[DataType.Array].prefix;
                     if (arr.length) {
                         parts = [
                             prefix + arr.length.toString(),
                             ...(data
-                                ? data.map((item) => this.encode(item, false))
+                                ? data.map((item) =>
+                                      this.encode(item, null, false)
+                                  )
                                 : []),
                         ];
                     } else {
@@ -56,5 +76,13 @@ export class Encoder {
                 throw new Error('Unsupported type');
         }
         return parts.join(DELIMITER) + (needEndDelimiter ? DELIMITER : '');
+    }
+
+    private static isStringDataType(dataType: DataType) {
+        return (
+            dataType === DataType.BulkString ||
+            dataType === DataType.SimpleString ||
+            dataType === DataType.VerbatimString
+        );
     }
 }
