@@ -7,7 +7,7 @@ enum ArgumentType {
     REPLICA_OF = 'replicaof',
 }
 
-interface Arguments {
+export interface Arguments {
     dir: string,
     dbfilename: string,
     port: number,

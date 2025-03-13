@@ -1,22 +1,12 @@
 import * as net from "net";
 import { CommandParser } from "./data/CommandParser";
-import { DataType, DELIMITER } from "./data/types";
 import { Encoder } from "./data/Encoder";
 import { Storage } from "./data/Storage";
-import { encode } from "punycode";
 import { isString } from "./data/helpers";
 import { ArgumentsReader } from "./server/ArgumentsReader";
-import crypto from "crypto";
-const PING_CMD = 'ping';
-const ECHO_CMD = 'echo';
-const GET_CMD = 'get';
-const SET_CMD = 'set';
-const CONFIG_CMD = 'config';
-const CONFIG_DIR_CMD = 'dir';
-const CONFIG_DB_FILENAME_CMD = 'dbfilename';
-const KEYS_CMD = 'keys';
-const INFO_CMD = 'info';
-const INFO_REPLICATION_CMD = 'replication';
+import { Server } from "./server/Server";
+import { Commands, Responses } from "./server/const";
+
 
 const commandParser = new CommandParser();
 const encoder = new Encoder();
@@ -29,121 +19,51 @@ const storage: Storage = new Storage({
 });
 storage.init();
 
-const serverId = crypto.randomUUID();
-const replicationOffset = 0;
 const [masterHost, masterPortString] = args.replicaof ? args.replicaof.split(' ') : [null, null];
 const masterPort = masterPortString ? Number(masterPortString): null;
+const capabilities = 'psync2';
 
 console.log('Creating server', args, storage);
+const server = new Server(
+  encoder,
+  commandParser,
+  storage,
+  args
+);
 
-const server: net.Server = net.createServer((connection: net.Socket) => {
-  connection.on('data', (data) => {
+// TODO extract CLIENT
+if (masterHost && masterPort) {
+  const commandsToSend: string[][] = [
+    [Commands.PING_CMD], 
+    [Commands.REPLCONF_CMD, Commands.REPLCONF_LISTENING_PORT_CMD, String(args.port)],
+    [Commands.REPLCONF_CMD, Commands.REPLCONF_CAPABILITIES_CMD, capabilities],
+  ]
+  const client = net.createConnection(masterPort, masterHost, () => {
+    console.log('Connected to server');
+    const firstCommand = commandsToSend.shift();
+    if (firstCommand) {
+      client.write(encoder.encode(firstCommand));      
+    }    
+  });
+  
+  client.on('data', (data) => {      
     const input = data.toString();
     const commandData = commandParser.parse(input);    
     if (!commandData) {
       console.error('No command data');
       return;
     }
-    if (commandData.type === DataType.Array) {
-      if (!commandData.value) {
-        console.warn('Empty array data');
-        return;
+    if (isString(commandData) && (commandData.value === Responses.RESPONSE_OK || commandData.value === Responses.RESPONSE_PONG)) {
+      console.log('Server response:', data.toString());
+      const nextCommand = commandsToSend.shift();
+      if (nextCommand) {
+        console.log('send next command', nextCommand);
+        client.write(encoder.encode(nextCommand));
       }
-      const [command, ...rest] = commandData.value;
-      if (isString(command)) {
-        if (!command.value) {
-          console.warn('Empty string data');
-          return;
-        }
-        let reply: string | null = null;
-        switch(command.value.toLowerCase()) {
-          case PING_CMD: {
-            reply = encoder.encode('PONG');
-            break;
-          }
-          case ECHO_CMD: {
-            reply = rest.map(restData => {
-              if (isString(restData)) {
-                return encoder.encode(restData.value);
-              }
-              return '';
-            }).join(' ');
-            break;
-          }      
-          case SET_CMD: {
-            const [keyData, valueData, pxData, pxValue] = rest;        
-            if (isString(keyData) && keyData.value) {
-              const hasPxArg = pxData && isString(pxData) && pxData?.value?.toLowerCase() === 'px';
-              const expirationMs = hasPxArg ? Number(pxValue.value) : 0;
-              console.log("SET CMD", keyData.value, valueData, expirationMs);
-              storage.set(keyData.value, valueData, expirationMs);
-            }
-            reply = encoder.encode('OK');
-            break;
-          }
-          case GET_CMD: {
-            const [keyData] = rest;
-            if (isString(keyData) && keyData.value) {
-              const getValue = storage.get(keyData.value);
-              reply = encoder.encode(getValue);
-            }
-            break;
-          }
-          case CONFIG_CMD: {
-            const [subCmdData, keyData] = rest;
-            if (isString(subCmdData) && subCmdData.value?.toLowerCase() === GET_CMD && isString(keyData)) {
-              switch (keyData.value?.toLowerCase()) {
-                case CONFIG_DIR_CMD: 
-                  reply = encoder.encode([CONFIG_DIR_CMD, args.dir]);
-                  break;
-                case CONFIG_DB_FILENAME_CMD:
-                  reply = encoder.encode([CONFIG_DB_FILENAME_CMD, args.dbfilename]);
-                  break;
-                }              
-            }            
-            break;
-          }
-          case KEYS_CMD: {
-            const [searchData] = rest;
-            if (isString(searchData)) {
-              const key = searchData.value === '*' ? null : searchData.value;                        
-              reply = encoder.encode(storage.keys(key));
-            }
-            break;
-          }
-          case INFO_CMD: {
-            const [subCmdData] = rest;
-            if (isString(subCmdData) && subCmdData.value === INFO_REPLICATION_CMD) {
-              const role = !args.replicaof ? 'master' : 'slave';
-              const info = [
-                `role:${role}`,      
-                `master_replid:${serverId}`,
-                `master_repl_offset:${replicationOffset}`
-              ];                
-              reply = encoder.encode(info.join(DELIMITER));
-            }
-          }        
-        }
-
-        if (!reply) {
-          reply = encoder.encode(null);
-        }
-        if (reply) {
-          connection.write(reply);
-        }
-      }      
     }
-  })
-  connection.on("close", () => {
-    connection.end();
-  });  
-});
-
-if (masterHost && masterPort) {
-  const client = net.createConnection(masterPort, masterHost, () => {
-    console.log('Connected to server');
-    client.write(encoder.encode([PING_CMD]));
   });
+
+  client.on('end', () => console.log('Disconnected from server'));
 }
 
 process.on( 'SIGINT', function() {
@@ -158,4 +78,5 @@ process.on( 'SIGINT', function() {
   process.exit( );
 })
 
-server.listen(args.port, "127.0.0.1");
+server.startListening();
+
