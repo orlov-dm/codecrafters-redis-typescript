@@ -1,4 +1,4 @@
-import { DefaultArguments } from "./const";
+import { DefaultArguments } from './const';
 
 enum ArgumentType {
     DIR = 'dir',
@@ -8,28 +8,38 @@ enum ArgumentType {
 }
 
 export interface Arguments {
-    dir: string,
-    dbfilename: string,
-    port: number,
-    replicaof: string,
+    dir: string;
+    dbfilename: string;
+    port: number;
+    replicaof: string;
 }
 
 export class ArgumentsReader {
     private arguments: Arguments;
-    constructor(private readonly args: string[]) {        
+    constructor(private readonly args: string[]) {
         const portString = this.readArgument(ArgumentType.PORT);
         this.arguments = {
-            dir: this.readArgument(ArgumentType.DIR) ?? DefaultArguments.DEFAULT_DIR,
-            dbfilename: this.readArgument(ArgumentType.DBFILENAME) ?? DefaultArguments.DEFAULT_DB_FILENAME,
-            port: portString ? Number(portString) : DefaultArguments.DEFAULT_PORT,
-            replicaof: this.readArgument(ArgumentType.REPLICA_OF) ?? DefaultArguments.DEFAULT_REPLICAOF,
-        }
+            dir:
+                this.readArgument(ArgumentType.DIR) ??
+                DefaultArguments.DEFAULT_DIR,
+            dbfilename:
+                this.readArgument(ArgumentType.DBFILENAME) ??
+                DefaultArguments.DEFAULT_DB_FILENAME,
+            port: portString
+                ? Number(portString)
+                : DefaultArguments.DEFAULT_PORT,
+            replicaof:
+                this.readArgument(ArgumentType.REPLICA_OF) ??
+                DefaultArguments.DEFAULT_REPLICAOF,
+        };
     }
 
-    private readArgument(argType: ArgumentType): string | null {        
-        const argumentIndex = this.args.findIndex((arg) => arg.startsWith("--" + argType));
+    private readArgument(argType: ArgumentType): string | null {
+        const argumentIndex = this.args.findIndex((arg) =>
+            arg.startsWith('--' + argType)
+        );
         if (argumentIndex !== -1) {
-            return this.args[argumentIndex + 1];            
+            return this.args[argumentIndex + 1];
         }
         return null;
     }

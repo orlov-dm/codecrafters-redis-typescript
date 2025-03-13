@@ -20,15 +20,18 @@ export enum DataType {
     Push,
 }
 
-export type UnifiedString = DataType.SimpleString | DataType.BulkString | DataType.VerbatimString;
+export type UnifiedString =
+    | DataType.SimpleString
+    | DataType.BulkString
+    | DataType.VerbatimString;
 
-export const DATA_PREFIXES: { [key: string]: DataType} = {
+export const DATA_PREFIXES: { [key: string]: DataType } = {
     '+': DataType.SimpleString,
     '-': DataType.SimpleError,
     ':': DataType.Integer,
-    '$': DataType.BulkString,
+    $: DataType.BulkString,
     '*': DataType.Array,
-    '_': DataType.Null,
+    _: DataType.Null,
     '#': DataType.Boolean,
     ',': DataType.Double,
     '(': DataType.BigNumber,
@@ -37,8 +40,8 @@ export const DATA_PREFIXES: { [key: string]: DataType} = {
     '%': DataType.Map,
     '`': DataType.Attribute,
     '~': DataType.Set,
-    '>': DataType.Push
-}
+    '>': DataType.Push,
+};
 
 export const DATA_PREFIXES_CONFIG = {
     [DataType.SimpleString]: {
@@ -86,7 +89,7 @@ export const DATA_PREFIXES_CONFIG = {
     [DataType.Push]: {
         prefix: '>',
     },
-}
+};
 
 export interface StringData {
     type: UnifiedString;
@@ -98,7 +101,7 @@ export interface IntegerData {
     value: number;
 }
 
-export interface ArrayData  {
+export interface ArrayData {
     type: DataType.Array;
     value: Data[];
 }

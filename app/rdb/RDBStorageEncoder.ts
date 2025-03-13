@@ -1,14 +1,19 @@
-import { buffer } from "stream/consumers";
-import type { StorageState } from "../data/Storage";
-import type { InternalValueType } from "../data/types";
-import { RDBStorage } from "./const";
-
+import { buffer } from 'stream/consumers';
+import type { StorageState } from '../data/Storage';
+import type { InternalValueType } from '../data/types';
+import { RDBStorage } from './const';
 
 export class RDBStorageEncoder {
-    public encodeHeader(): Uint8Array {        
-        const buffer = Buffer.alloc(RDBStorage.MAGIC_STRING.length + RDBStorage.MAGIC_STRING_VER.length); // 5 bytes for "REDIS" + 4 bytes for version
+    public encodeHeader(): Uint8Array {
+        const buffer = Buffer.alloc(
+            RDBStorage.MAGIC_STRING.length + RDBStorage.MAGIC_STRING_VER.length
+        ); // 5 bytes for "REDIS" + 4 bytes for version
         const offset = buffer.write(RDBStorage.MAGIC_STRING);
-        buffer.write(RDBStorage.MAGIC_STRING_VER, offset, RDBStorage.MAGIC_STRING_VER.length);
+        buffer.write(
+            RDBStorage.MAGIC_STRING_VER,
+            offset,
+            RDBStorage.MAGIC_STRING_VER.length
+        );
         return buffer;
     }
 
@@ -16,13 +21,13 @@ export class RDBStorageEncoder {
         return Buffer.concat([
             Uint8Array.from([RDBStorage.METADATA_SECTION_FLAG]),
             this.encodeString(RDBStorage.REDIS_VER_PARAM),
-            this.encodeString(RDBStorage.REDIS_VER)
+            this.encodeString(RDBStorage.REDIS_VER),
         ]);
     }
 
     public encodeDatabase(storage: StorageState): Uint8Array | null {
         if (!storage.data.size) {
-            return null
+            return null;
         }
         const dbIndex = 0;
         const mainPart = Buffer.concat([
@@ -30,23 +35,22 @@ export class RDBStorageEncoder {
             this.encodeLength(dbIndex),
             Uint8Array.from([RDBStorage.DATABASE_SIZE_SECTION_FLAG]),
             this.encodeLength(storage.data.size),
-            this.encodeLength(storage.expiry.size)
+            this.encodeLength(storage.expiry.size),
         ]);
-        const keyParts: Uint8Array[] = [...storage.data.entries()].map(([key, value]) => {
-            const typeByte = Uint8Array.from([RDBStorage.STRING_TYPE]);
-            const expiryMs = storage.expiry.get(key) ?? null;
-            const part: Uint8Array = Buffer.concat([
-                typeByte,
-                this.encodeString(key),
-                this.encodeValue(value, expiryMs),
-            ]);
-            return part;
-        });
+        const keyParts: Uint8Array[] = [...storage.data.entries()].map(
+            ([key, value]) => {
+                const typeByte = Uint8Array.from([RDBStorage.STRING_TYPE]);
+                const expiryMs = storage.expiry.get(key) ?? null;
+                const part: Uint8Array = Buffer.concat([
+                    typeByte,
+                    this.encodeString(key),
+                    this.encodeValue(value, expiryMs),
+                ]);
+                return part;
+            }
+        );
 
-        return Buffer.concat([
-            mainPart,
-            ...keyParts
-        ]);
+        return Buffer.concat([mainPart, ...keyParts]);
     }
 
     public encodeEOF(): Uint8Array {
@@ -57,13 +61,13 @@ export class RDBStorageEncoder {
         if (length < 64) {
             // Single-byte length (6-bit)
             const buffer = Buffer.alloc(1);
-            const encodedValue = (0b00 << 6) | length
-            buffer.writeUInt8(encodedValue)
+            const encodedValue = (0b00 << 6) | length;
+            buffer.writeUInt8(encodedValue);
             return buffer;
         } else if (length < 16384) {
-            const buffer = Buffer.alloc(2); // Create a 2-byte buffer        
+            const buffer = Buffer.alloc(2); // Create a 2-byte buffer
             const encodedValue = (0b01 << 14) | length; // Combine prefix with number
-            buffer.writeUInt16BE(encodedValue); // Write to buffer in big-endian format         
+            buffer.writeUInt16BE(encodedValue); // Write to buffer in big-endian format
             return buffer;
         } else {
             // 5-byte length (marker + 4-byte unsigned integer)
@@ -73,27 +77,32 @@ export class RDBStorageEncoder {
             return buffer;
         }
     }
-    
+
     private encodeStringIntegerAsLength(value: number) {
         console.log('encoding str as int', value);
-        if (value >= -128 && value <= 127) {    
-            return Buffer.from([0xC0, value & 0xFF]);            
-        } else  if (value >= -32768 && value <= 32767) {
+        if (value >= -128 && value <= 127) {
+            return Buffer.from([0xc0, value & 0xff]);
+        } else if (value >= -32768 && value <= 32767) {
             const buffer = Buffer.alloc(3);
-            buffer.writeUInt8(0xC1, 0);
+            buffer.writeUInt8(0xc1, 0);
             buffer.writeInt16LE(value, 1);
             return buffer;
-        } else if (value >= -2147483648 && value <= 2147483647) {     
+        } else if (value >= -2147483648 && value <= 2147483647) {
             const buffer = Buffer.alloc(5);
-            buffer.writeUint8(0xC2, 0);
-            buffer.writeInt32LE(value, 1);       
+            buffer.writeUint8(0xc2, 0);
+            buffer.writeInt32LE(value, 1);
             return buffer;
         } else {
-            throw new RangeError(`Value ${value} is out of range for integer encoding.`);
-        }        
+            throw new RangeError(
+                `Value ${value} is out of range for integer encoding.`
+            );
+        }
     }
 
-    private encodeValue(value: InternalValueType, expiryMs: number | null): Buffer {
+    private encodeValue(
+        value: InternalValueType,
+        expiryMs: number | null
+    ): Buffer {
         let valuePart: Buffer | null = null;
         let expiryPart: Buffer | null = null;
         switch (typeof value) {
@@ -106,15 +115,12 @@ export class RDBStorageEncoder {
         }
 
         if (expiryMs) {
-            expiryPart = Buffer.alloc(9);            
+            expiryPart = Buffer.alloc(9);
             expiryPart.writeUInt8(RDBStorage.EXPIRY_MILISECONDS_FLAG);
             expiryPart.writeBigUInt64LE(BigInt(expiryMs));
         }
 
-        return Buffer.concat([
-            expiryPart,
-            valuePart
-        ].filter(part => !!part));
+        return Buffer.concat([expiryPart, valuePart].filter((part) => !!part));
     }
 
     private encodeString(value: string): Buffer {
@@ -123,14 +129,14 @@ export class RDBStorageEncoder {
             const num = Number(value);
             try {
                 return this.encodeStringIntegerAsLength(num);
-            } catch(e: any) {
+            } catch (e: any) {
                 // use original string encoding instead
             }
         }
         const stringLength = this.encodeLength(value.length);
         return Buffer.concat([
             stringLength, // Type
-            Buffer.from(value)
+            Buffer.from(value),
         ]);
     }
 }

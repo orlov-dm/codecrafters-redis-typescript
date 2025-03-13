@@ -1,9 +1,8 @@
-
 export namespace DefaultArguments {
     export const DEFAULT_DIR = '/tmp/redis-files';
     export const DEFAULT_DB_FILENAME = 'dump.rdb';
     export const DEFAULT_PORT = 6379;
-    export const DEFAULT_REPLICAOF = '';    
+    export const DEFAULT_REPLICAOF = '';
 }
 
 export namespace Commands {
@@ -23,8 +22,8 @@ export namespace Commands {
 }
 
 export namespace Responses {
-    export const RESPONSE_OK = "OK";
-    export const RESPONSE_PONG = "PONG";
+    export const RESPONSE_OK = 'OK';
+    export const RESPONSE_PONG = 'PONG';
 }
 
-export const LOCALHOST = "127.0.0.1";
+export const LOCALHOST = '127.0.0.1';

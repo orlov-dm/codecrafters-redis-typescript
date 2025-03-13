@@ -1,23 +1,27 @@
-import { DataType, DATA_PREFIXES, DELIMITER } from "./types";
-import type { Data, StringData } from "./types";
+import { DataType, DATA_PREFIXES, DELIMITER } from './types';
+import type { Data, StringData } from './types';
 
 export class CommandParser {
     constructor() {}
-    
-    public parse(input: string): Data | null  {        
+
+    public parse(input: string): Data | null {
         const [result] = this.parseElement(input);
         return result;
     }
 
-    private parseElement(input: string, index: number = 0): [Data | null, number] {
+    private parseElement(
+        input: string,
+        index: number = 0
+    ): [Data | null, number] {
         const [firstChar] = input[index];
         index++;
-        const type: DataType | null = firstChar in DATA_PREFIXES ? DATA_PREFIXES[firstChar] : null;
+        const type: DataType | null =
+            firstChar in DATA_PREFIXES ? DATA_PREFIXES[firstChar] : null;
         if (type === null) {
             console.error('Unknown data type', firstChar);
             return [null, index];
         }
-        let nextPrefixIndex = this.findNextPrefix(input, index) ?? input.length;        
+        let nextPrefixIndex = this.findNextPrefix(input, index) ?? input.length;
         let data: Data | null = null;
         switch (type) {
             case DataType.Integer:
@@ -31,14 +35,24 @@ export class CommandParser {
                 }
                 data = {
                     type,
-                    value: sign * Number(input.slice(index, nextPrefixIndex - DELIMITER.length))
-                }
+                    value:
+                        sign *
+                        Number(
+                            input.slice(
+                                index,
+                                nextPrefixIndex - DELIMITER.length
+                            )
+                        ),
+                };
                 break;
             case DataType.SimpleString:
-                // +OK\r\n                
+                // +OK\r\n
                 data = {
                     type,
-                    value: input.slice(index, nextPrefixIndex - DELIMITER.length)
+                    value: input.slice(
+                        index,
+                        nextPrefixIndex - DELIMITER.length
+                    ),
                 };
                 break;
             case DataType.BulkString:
@@ -50,7 +64,7 @@ export class CommandParser {
                 }
                 const strLength = Number(input.slice(index, strLengthEndIndex));
                 if (Number.isNaN(strLength)) {
-                    console.error("Malformed length in BulkString");
+                    console.error('Malformed length in BulkString');
                     break;
                 }
                 if (strLength === -1) {
@@ -60,8 +74,11 @@ export class CommandParser {
                 index = strLengthEndIndex + DELIMITER.length;
                 data = {
                     type,
-                    value: input.slice(index, nextPrefixIndex - DELIMITER.length)
-                }
+                    value: input.slice(
+                        index,
+                        nextPrefixIndex - DELIMITER.length
+                    ),
+                };
                 break;
             case DataType.Array:
                 // *2\r\n$4\r\nECHO\r\n$3\r\nhey\r\n'
@@ -72,7 +89,7 @@ export class CommandParser {
                 }
                 let arrLength = Number(input.slice(index, arrLengthEndIndex));
                 if (Number.isNaN(arrLength)) {
-                    console.error("Malformed length in Array");
+                    console.error('Malformed length in Array');
                     break;
                 }
                 if (arrLength === -1) {
@@ -80,22 +97,24 @@ export class CommandParser {
                     break;
                 }
                 const arrayData: Data[] = [];
-                index = arrLengthEndIndex + DELIMITER.length;             
-                while(arrLength--) {
-                    const [arrayDataItem, newIndex] = this.parseElement(input, index);
+                index = arrLengthEndIndex + DELIMITER.length;
+                while (arrLength--) {
+                    const [arrayDataItem, newIndex] = this.parseElement(
+                        input,
+                        index
+                    );
                     if (!arrayDataItem) {
                         console.error("Can't parse element in Array");
                         break;
                     }
-                    index = newIndex;               
+                    index = newIndex;
                     arrayData.push(arrayDataItem);
                 }
                 data = {
                     type,
-                    value: arrayData
-                }
+                    value: arrayData,
+                };
                 break;
-
         }
         return [data, nextPrefixIndex];
     }
@@ -103,13 +122,13 @@ export class CommandParser {
     private findNextPrefix(input: string, index: number): number | null {
         let nextPrefixIndex = 0;
         let tempNextIndex = index;
-        while(nextPrefixIndex === 0) {
+        while (nextPrefixIndex === 0) {
             tempNextIndex = input.indexOf(DELIMITER, tempNextIndex);
             if (tempNextIndex === -1) {
                 console.error("Can't find next delimiter");
                 return null;
             }
-            tempNextIndex += + DELIMITER.length;
+            tempNextIndex += +DELIMITER.length;
             if (tempNextIndex >= input.length) {
                 // reached end
                 return null;

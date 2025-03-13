@@ -1,6 +1,11 @@
 import { RDBStorageSaver } from '../rdb/RDBStorageSaver';
 import { isString } from './helpers';
-import { DataType, type Data, type InternalValueType, type StringData } from './types';
+import {
+    DataType,
+    type Data,
+    type InternalValueType,
+    type StringData,
+} from './types';
 
 export interface PersistenceConfig {
     dir: string;
@@ -12,20 +17,20 @@ export interface StorageState {
     expiry: Map<string, number>;
 }
 
-const SAVE_INTERVAL_MS = 2000 * 10; 
+const SAVE_INTERVAL_MS = 2000 * 10;
 
 export class Storage {
     private data: Map<string, InternalValueType> = new Map();
     private expiry: Map<string, number> = new Map();
     private readonly rdbStorageSaver: RDBStorageSaver | null = null;
-    
+
     constructor(persistenceConfig?: PersistenceConfig) {
         console.log('Storage config', persistenceConfig);
         if (persistenceConfig) {
-            this.rdbStorageSaver = new RDBStorageSaver(persistenceConfig);            
+            this.rdbStorageSaver = new RDBStorageSaver(persistenceConfig);
         }
     }
-    
+
     public init() {
         console.log('Storage init');
         if (this.rdbStorageSaver) {
@@ -37,7 +42,7 @@ export class Storage {
                 }
                 if (expiry) {
                     this.expiry = expiry;
-                }                        
+                }
             }
             setInterval(() => this.save(), SAVE_INTERVAL_MS);
         }
@@ -53,16 +58,16 @@ export class Storage {
             if (ms) {
                 this.expiry.set(key, Date.now() + ms);
                 console.log('Expiry is set for key', key, ms);
-            } 
+            }
             return true;
-        } catch(error) {
+        } catch (error) {
             console.error(error);
-        }        
+        }
         return false;
     }
 
     public get(key: string): InternalValueType | null {
-        try { 
+        try {
             if (!this.data.has(key)) {
                 return null;
             }
@@ -80,13 +85,13 @@ export class Storage {
         return null;
     }
 
-    public keys(search: string | null = null ): string[] {
+    public keys(search: string | null = null): string[] {
         const keys = this.data.keys();
 
         if (!search) {
             return Array.from(keys);
         }
-        
+
         const searchRE = new RegExp(search.replace('*', '.*'), 'g');
         return Array.from(keys.filter((key) => searchRE.exec(key) !== null));
     }
@@ -98,7 +103,7 @@ export class Storage {
         console.log('data', this.data);
         this.rdbStorageSaver.save({
             data: this.data,
-            expiry: this.expiry
+            expiry: this.expiry,
         });
     }
 }
