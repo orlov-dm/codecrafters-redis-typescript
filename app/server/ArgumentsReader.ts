@@ -12,12 +12,24 @@ export interface Arguments {
     dbfilename: string;
     port: number;
     replicaof: string;
+    masterHost: string | null;
+    masterPort: number | null;
 }
 
 export class ArgumentsReader {
     private arguments: Arguments;
     constructor(private readonly args: string[]) {
         const portString = this.readArgument(ArgumentType.PORT);
+
+        const replicaOf =
+            this.readArgument(ArgumentType.REPLICA_OF) ??
+            DefaultArguments.DEFAULT_REPLICAOF;
+
+        const [masterHost, masterPortString] = replicaOf
+            ? replicaOf.split(' ')
+            : [null, null];
+        const masterPort = masterPortString ? Number(masterPortString) : null;
+
         this.arguments = {
             dir:
                 this.readArgument(ArgumentType.DIR) ??
@@ -31,6 +43,8 @@ export class ArgumentsReader {
             replicaof:
                 this.readArgument(ArgumentType.REPLICA_OF) ??
                 DefaultArguments.DEFAULT_REPLICAOF,
+            masterHost,
+            masterPort,
         };
     }
 

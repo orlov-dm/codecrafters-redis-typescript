@@ -6,6 +6,7 @@ import { isString } from './data/helpers';
 import { ArgumentsReader } from './server/ArgumentsReader';
 import { Server } from './server/Server';
 import { Commands, Responses } from './server/const';
+import { Client } from './client/Client';
 
 const commandParser = new CommandParser();
 const encoder = new Encoder();
@@ -18,60 +19,20 @@ const storage: Storage = new Storage({
 });
 storage.init();
 
-const [masterHost, masterPortString] = args.replicaof
-    ? args.replicaof.split(' ')
-    : [null, null];
-const masterPort = masterPortString ? Number(masterPortString) : null;
-const capabilities = 'psync2';
-
 console.log('Creating server', args, storage);
-const server = new Server(encoder, commandParser, storage, args);
+const server = new Server(encoder, commandParser, storage, {
+    port: args.port,
+    directory: args.dir,
+    dbFilename: args.dbfilename,
+    isReplica: !!args.replicaof,
+});
 
-// TODO extract CLIENT
-if (masterHost && masterPort) {
-    const commandsToSend: string[][] = [
-        [Commands.PING_CMD],
-        [
-            Commands.REPLCONF_CMD,
-            Commands.REPLCONF_LISTENING_PORT_CMD,
-            String(args.port),
-        ],
-        [
-            Commands.REPLCONF_CMD,
-            Commands.REPLCONF_CAPABILITIES_CMD,
-            capabilities,
-        ],
-    ];
-    const client = net.createConnection(masterPort, masterHost, () => {
-        console.log('Connected to server');
-        const firstCommand = commandsToSend.shift();
-        if (firstCommand) {
-            client.write(encoder.encode(firstCommand));
-        }
+if (args.masterHost && args.masterPort) {
+    new Client(encoder, commandParser, {
+        masterHost: args.masterHost,
+        masterPort: args.masterPort,
+        port: args.port,
     });
-
-    client.on('data', (data) => {
-        const input = data.toString();
-        const commandData = commandParser.parse(input);
-        if (!commandData) {
-            console.error('No command data');
-            return;
-        }
-        if (
-            isString(commandData) &&
-            (commandData.value === Responses.RESPONSE_OK ||
-                commandData.value === Responses.RESPONSE_PONG)
-        ) {
-            console.log('Server response:', data.toString());
-            const nextCommand = commandsToSend.shift();
-            if (nextCommand) {
-                console.log('send next command', nextCommand);
-                client.write(encoder.encode(nextCommand));
-            }
-        }
-    });
-
-    client.on('end', () => console.log('Disconnected from server'));
 }
 
 process.on('SIGINT', function () {

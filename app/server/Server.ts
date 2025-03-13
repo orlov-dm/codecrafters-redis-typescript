@@ -7,6 +7,13 @@ import { isString } from '../data/helpers';
 import { Commands, LOCALHOST, Responses } from './const';
 import type { Arguments, ArgumentsReader } from './ArgumentsReader';
 
+interface ServerConfig {
+    port: number;
+    directory: string;
+    dbFilename: string;
+    isReplica: boolean;
+}
+
 export class Server {
     private readonly instance: net.Server;
     private readonly serverId = crypto.randomUUID();
@@ -16,7 +23,7 @@ export class Server {
         private readonly encoder: Encoder,
         private readonly commandParser: CommandParser,
         private readonly storage: Storage,
-        private readonly args: Arguments
+        private readonly config: ServerConfig
     ) {
         this.instance = net.createServer((connection: net.Socket) => {
             connection.on('data', (data: Buffer) =>
@@ -29,7 +36,7 @@ export class Server {
     }
 
     public startListening() {
-        this.instance.listen(this.args.port, LOCALHOST);
+        this.instance.listen(this.config.port, LOCALHOST);
     }
 
     private onDataHandler(connection: net.Socket, data: Buffer) {
@@ -112,13 +119,13 @@ export class Server {
                                 case Commands.CONFIG_DIR_CMD:
                                     reply = this.encoder.encode([
                                         Commands.CONFIG_DIR_CMD,
-                                        this.args.dir,
+                                        this.config.directory,
                                     ]);
                                     break;
                                 case Commands.CONFIG_DB_FILENAME_CMD:
                                     reply = this.encoder.encode([
                                         Commands.CONFIG_DB_FILENAME_CMD,
-                                        this.args.dbfilename,
+                                        this.config.dbFilename,
                                     ]);
                                     break;
                             }
@@ -143,7 +150,7 @@ export class Server {
                             isString(subCmdData) &&
                             subCmdData.value === Commands.INFO_REPLICATION_CMD
                         ) {
-                            const role = !this.args.replicaof
+                            const role = !this.config.isReplica
                                 ? 'master'
                                 : 'slave';
                             const info = [
