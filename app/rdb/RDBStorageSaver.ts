@@ -16,14 +16,7 @@ export class RDBStorageSaver {
     public save(storage: StorageState) {
         try {
             console.log('saving file', this.filePath);
-            const header = this.encoder.encodeHeader();
-            const metadata = this.encoder.encodeMetadata();
-            const database = this.encoder.encodeDatabase(storage);
-            const eofMarker = this.encoder.encodeEOF();
-
-            const buffer = Buffer.concat(
-                [header, metadata, database, eofMarker].filter((part) => !!part)
-            );
+            const buffer = this.getFileBuffer(storage);
             writeFileSync(this.filePath, buffer);
         } catch (err) {
             console.error(err, "Can't write file", this.filePath);
@@ -58,5 +51,27 @@ export class RDBStorageSaver {
             console.error(err, "Can't restore data from file", this.filePath);
         }
         return null;
+    }
+
+    public getFileContent(storage: StorageState): Buffer {
+        try {
+            const buffer = readFileSync(this.filePath);
+            return buffer;
+        } catch (err) {
+            console.error(err, 'No file yet', this.filePath);
+        }
+        return this.getFileBuffer(storage);
+    }
+
+    private getFileBuffer(storage: StorageState): Buffer {
+        const header = this.encoder.encodeHeader();
+        const metadata = this.encoder.encodeMetadata();
+        const database = this.encoder.encodeDatabase(storage);
+        const eofMarker = this.encoder.encodeEOF();
+
+        const buffer = Buffer.concat(
+            [header, metadata, database, eofMarker].filter((part) => !!part)
+        );
+        return buffer;
     }
 }

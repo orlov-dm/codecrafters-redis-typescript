@@ -106,4 +106,14 @@ export class Storage {
             expiry: this.expiry,
         });
     }
+
+    public getFileContent(): Buffer | null {
+        if (!this.rdbStorageSaver) {
+            return null;
+        }
+        return this.rdbStorageSaver.getFileContent({
+            data: this.data,
+            expiry: this.expiry,
+        });
+    }
 }

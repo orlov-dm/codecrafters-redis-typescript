@@ -6,6 +6,7 @@ import { DataType, DELIMITER } from '../data/types';
 import { isString } from '../data/helpers';
 import { Commands, LOCALHOST, Responses, UNKNOWN } from './const';
 import type { Arguments, ArgumentsReader } from './ArgumentsReader';
+import { RDBStorage } from '../rdb/const';
 
 interface ServerConfig {
     port: number;
@@ -208,6 +209,21 @@ export class Server {
                                 `${Responses.RESPONSE_FULLRESYNC} ${this.serverId} ${this.replicationOffset}`,
                                 DataType.SimpleString
                             );
+                            connection.write(reply);
+
+                            const fileContent = this.storage.getFileContent();
+                            if (fileContent) {
+                                connection.write(
+                                    Buffer.concat([
+                                        Buffer.from(
+                                            `$${fileContent.length}${DELIMITER}`,
+                                            RDBStorage.SOURCE_ENCODING
+                                        ),
+                                        fileContent,
+                                    ])
+                                );
+                            }
+                            return;
                         }
                     }
                 }
