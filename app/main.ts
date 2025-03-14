@@ -5,7 +5,7 @@ import { Storage } from './data/Storage';
 import { isString } from './data/helpers';
 import { ArgumentsReader } from './server/ArgumentsReader';
 import { Server } from './server/Server';
-import { Commands, Responses } from './server/const';
+import { Command, Responses } from './server/const';
 import { Client } from './client/Client';
 
 const commandParser = new CommandParser();

@@ -4,9 +4,9 @@ import { Storage } from '../data/Storage';
 import { CommandParser } from '../data/CommandParser';
 import { DataType, DELIMITER } from '../data/types';
 import { isString } from '../data/helpers';
-import { Commands, LOCALHOST, Responses, UNKNOWN } from './const';
-import type { Arguments, ArgumentsReader } from './ArgumentsReader';
+import { Command, LOCALHOST, Responses, UNKNOWN } from './const';
 import { RDBStorage } from '../rdb/const';
+import { prototype } from 'events';
 
 interface ServerConfig {
     port: number;
@@ -20,6 +20,7 @@ export class Server {
     private readonly serverId = crypto.randomUUID().split('-').join('');
     private readonly replicationOffset = 0;
     private readonly listeningPorts: number[] = [];
+    private readonly replicaConnections: Map<number, net.Socket> = new Map();
     constructor(
         private readonly encoder: Encoder,
         private readonly commandParser: CommandParser,
@@ -60,14 +61,14 @@ export class Server {
                 }
                 let reply: string | null = null;
                 switch (command.value.toLowerCase()) {
-                    case Commands.PING_CMD: {
+                    case Command.PING_CMD: {
                         reply = this.encoder.encode(
                             Responses.RESPONSE_PONG,
                             DataType.SimpleString
                         );
                         break;
                     }
-                    case Commands.ECHO_CMD: {
+                    case Command.ECHO_CMD: {
                         reply = rest
                             .map((restData) => {
                                 if (isString(restData)) {
@@ -78,7 +79,7 @@ export class Server {
                             .join(' ');
                         break;
                     }
-                    case Commands.SET_CMD: {
+                    case Command.SET_CMD: {
                         const [keyData, valueData, pxData, pxValue] = rest;
                         if (isString(keyData) && keyData.value) {
                             const hasPxArg =
@@ -106,7 +107,7 @@ export class Server {
                         );
                         break;
                     }
-                    case Commands.GET_CMD: {
+                    case Command.GET_CMD: {
                         const [keyData] = rest;
                         if (isString(keyData) && keyData.value) {
                             const getValue = this.storage.get(keyData.value);
@@ -114,24 +115,24 @@ export class Server {
                         }
                         break;
                     }
-                    case Commands.CONFIG_CMD: {
+                    case Command.CONFIG_CMD: {
                         const [subCmdData, keyData] = rest;
                         if (
                             isString(subCmdData) &&
                             subCmdData.value?.toLowerCase() ===
-                                Commands.GET_CMD &&
+                                Command.GET_CMD &&
                             isString(keyData)
                         ) {
                             switch (keyData.value?.toLowerCase()) {
-                                case Commands.CONFIG_DIR_CMD:
+                                case Command.CONFIG_DIR_CMD:
                                     reply = this.encoder.encode([
-                                        Commands.CONFIG_DIR_CMD,
+                                        Command.CONFIG_DIR_CMD,
                                         this.config.directory,
                                     ]);
                                     break;
-                                case Commands.CONFIG_DB_FILENAME_CMD:
+                                case Command.CONFIG_DB_FILENAME_CMD:
                                     reply = this.encoder.encode([
-                                        Commands.CONFIG_DB_FILENAME_CMD,
+                                        Command.CONFIG_DB_FILENAME_CMD,
                                         this.config.dbFilename,
                                     ]);
                                     break;
@@ -139,7 +140,7 @@ export class Server {
                         }
                         break;
                     }
-                    case Commands.KEYS_CMD: {
+                    case Command.KEYS_CMD: {
                         const [searchData] = rest;
                         if (isString(searchData)) {
                             const key =
@@ -150,12 +151,12 @@ export class Server {
                         }
                         break;
                     }
-                    case Commands.INFO_CMD: {
+                    case Command.INFO_CMD: {
                         const [subCmdData] = rest;
                         console.log('INFO CMD', subCmdData);
                         if (
                             isString(subCmdData) &&
-                            subCmdData.value === Commands.INFO_REPLICATION_CMD
+                            subCmdData.value === Command.INFO_REPLICATION_CMD
                         ) {
                             const role = !this.config.isReplica
                                 ? 'master'
@@ -169,18 +170,25 @@ export class Server {
                         }
                         break;
                     }
-                    case Commands.REPLCONF_CMD: {
+                    case Command.REPLCONF_CMD: {
                         const [subCmdData] = rest;
                         if (isString(subCmdData)) {
                             switch (subCmdData.value) {
-                                case Commands.REPLCONF_LISTENING_PORT_CMD: {
+                                case Command.REPLCONF_LISTENING_PORT_CMD: {
                                     const [, listeningPort] = rest;
+                                    const listeningPortValue = Number(
+                                        listeningPort.value
+                                    );
                                     this.listeningPorts.push(
-                                        Number(listeningPort.value)
+                                        listeningPortValue
+                                    );
+                                    this.setReplicaConnection(
+                                        listeningPortValue,
+                                        connection
                                     );
                                     break;
                                 }
-                                case Commands.REPLCONF_CAPABILITIES_CMD: {
+                                case Command.REPLCONF_CAPABILITIES_CMD: {
                                     console.log('CAPA', rest);
                                     break;
                                 }
@@ -192,7 +200,7 @@ export class Server {
                         }
                         break;
                     }
-                    case Commands.PSYNC_CMD: {
+                    case Command.PSYNC_CMD: {
                         const [replIdData, replOffsetData] = rest;
                         reply = this.encoder.encode(
                             `${replIdData.type} '${replIdData.value}' , ${replOffsetData.type} '${replOffsetData.value}'`,
@@ -234,7 +242,25 @@ export class Server {
                 if (reply) {
                     connection.write(reply);
                 }
+
+                if (Server.isWriteCommand(command.value)) {
+                    this.listeningPorts.forEach((port) => {
+                        this.getReplicaConnection(port)?.write(data);
+                    });
+                }
             }
         }
+    }
+
+    private getReplicaConnection(port: number): net.Socket | null {
+        return this.replicaConnections.get(port) ?? null;
+    }
+
+    private setReplicaConnection(port: number, connection: net.Socket) {
+        this.replicaConnections.set(port, connection);
+    }
+
+    private static isWriteCommand(command: string) {
+        return command.toLowerCase() === Command.SET_CMD;
     }
 }

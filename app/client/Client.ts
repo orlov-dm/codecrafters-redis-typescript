@@ -1,7 +1,7 @@
 import * as net from 'net';
 import type { Encoder } from '../data/Encoder';
 import type { CommandParser } from '../data/CommandParser';
-import { Commands, Responses, UNKNOWN } from '../server/const';
+import { Command, Responses, UNKNOWN } from '../server/const';
 import { isString } from '../data/helpers';
 
 interface Config {
@@ -38,18 +38,18 @@ export class Client {
 
         this.commandsToSend.push(
             ...[
-                [Commands.PING_CMD],
+                [Command.PING_CMD],
                 [
-                    Commands.REPLCONF_CMD,
-                    Commands.REPLCONF_LISTENING_PORT_CMD,
+                    Command.REPLCONF_CMD,
+                    Command.REPLCONF_LISTENING_PORT_CMD,
                     String(this.config.port),
                 ],
                 [
-                    Commands.REPLCONF_CMD,
-                    Commands.REPLCONF_CAPABILITIES_CMD,
+                    Command.REPLCONF_CMD,
+                    Command.REPLCONF_CAPABILITIES_CMD,
                     this.capabilities,
                 ],
-                [Commands.PSYNC_CMD, UNKNOWN, '-1'],
+                [Command.PSYNC_CMD, UNKNOWN, '-1'],
             ]
         );
     }
