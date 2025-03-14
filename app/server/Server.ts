@@ -16,7 +16,7 @@ interface ServerConfig {
 
 export class Server {
     private readonly instance: net.Server;
-    private readonly serverId = crypto.randomUUID();
+    private readonly serverId = crypto.randomUUID().split('-').join('');
     private readonly replicationOffset = 0;
     private readonly listeningPorts: number[] = [];
     constructor(
@@ -193,11 +193,16 @@ export class Server {
                     }
                     case Commands.PSYNC_CMD: {
                         const [replIdData, replOffsetData] = rest;
+                        reply = this.encoder.encode(
+                            `${replIdData.type} '${replIdData.value}' , ${replOffsetData.type} '${replOffsetData.value}'`,
+                            DataType.SimpleString
+                        );
+
                         if (
                             isString(replIdData) &&
                             replIdData.value === UNKNOWN &&
                             isString(replOffsetData) &&
-                            replOffsetData.value === '-1'
+                            Number(replOffsetData.value) === -1
                         ) {
                             reply = this.encoder.encode(
                                 `${Responses.RESPONSE_FULLRESYNC} ${this.serverId} ${this.replicationOffset}`,

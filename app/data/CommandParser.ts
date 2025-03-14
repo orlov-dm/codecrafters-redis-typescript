@@ -21,48 +21,36 @@ export class CommandParser {
             console.error('Unknown data type', firstChar);
             return [null, index];
         }
-        let nextPrefixIndex = this.findNextPrefix(input, index) ?? input.length;
+        let nextDelimiterIndex = input.indexOf(DELIMITER, index);
+        if (nextDelimiterIndex === -1) {
+            console.error('no delimiter after data prefix');
+            return [null, index];
+        }
         let data: Data | null = null;
         switch (type) {
             case DataType.Integer:
                 //
-                let sign = 1;
-                if (input[index] === '-' || input[index] === '+') {
-                    if (input[index] === '-') {
-                        sign = -1;
-                    }
-                    index++;
-                }
                 data = {
                     type,
-                    value:
-                        sign *
-                        Number(
-                            input.slice(
-                                index,
-                                nextPrefixIndex - DELIMITER.length
-                            )
-                        ),
+                    value: Number(input.slice(index, nextDelimiterIndex)),
                 };
                 break;
             case DataType.SimpleString:
                 // +OK\r\n
                 data = {
                     type,
-                    value: input.slice(
-                        index,
-                        nextPrefixIndex - DELIMITER.length
-                    ),
+                    value: input.slice(index, nextDelimiterIndex),
                 };
                 break;
             case DataType.BulkString:
                 // $4\r\nECHO\r\n
-                const strLengthEndIndex = input.indexOf(DELIMITER, index);
-                if (strLengthEndIndex === -1) {
+                if (nextDelimiterIndex === -1) {
                     console.error("Can't find length in BulkString");
                     break;
                 }
-                const strLength = Number(input.slice(index, strLengthEndIndex));
+                const strLength = Number(
+                    input.slice(index, nextDelimiterIndex)
+                );
                 if (Number.isNaN(strLength)) {
                     console.error('Malformed length in BulkString');
                     break;
@@ -71,23 +59,20 @@ export class CommandParser {
                     data = null;
                     break;
                 }
-                index = strLengthEndIndex + DELIMITER.length;
+                index = nextDelimiterIndex + DELIMITER.length;
+                nextDelimiterIndex = input.indexOf(DELIMITER, index);
                 data = {
                     type,
-                    value: input.slice(
-                        index,
-                        nextPrefixIndex - DELIMITER.length
-                    ),
+                    value: input.slice(index, nextDelimiterIndex),
                 };
                 break;
             case DataType.Array:
                 // *2\r\n$4\r\nECHO\r\n$3\r\nhey\r\n'
-                const arrLengthEndIndex = input.indexOf(DELIMITER, index);
-                if (arrLengthEndIndex === -1) {
+                if (nextDelimiterIndex === -1) {
                     console.error("Can't find length in Array");
                     break;
                 }
-                let arrLength = Number(input.slice(index, arrLengthEndIndex));
+                let arrLength = Number(input.slice(index, nextDelimiterIndex));
                 if (Number.isNaN(arrLength)) {
                     console.error('Malformed length in Array');
                     break;
@@ -97,7 +82,7 @@ export class CommandParser {
                     break;
                 }
                 const arrayData: Data[] = [];
-                index = arrLengthEndIndex + DELIMITER.length;
+                index = nextDelimiterIndex + DELIMITER.length;
                 while (arrLength--) {
                     const [arrayDataItem, newIndex] = this.parseElement(
                         input,
@@ -116,27 +101,6 @@ export class CommandParser {
                 };
                 break;
         }
-        return [data, nextPrefixIndex];
-    }
-
-    private findNextPrefix(input: string, index: number): number | null {
-        let nextPrefixIndex = 0;
-        let tempNextIndex = index;
-        while (nextPrefixIndex === 0) {
-            tempNextIndex = input.indexOf(DELIMITER, tempNextIndex);
-            if (tempNextIndex === -1) {
-                console.error("Can't find next delimiter");
-                return null;
-            }
-            tempNextIndex += +DELIMITER.length;
-            if (tempNextIndex >= input.length) {
-                // reached end
-                return null;
-            }
-            if (DATA_PREFIXES[input[tempNextIndex]]) {
-                nextPrefixIndex = tempNextIndex;
-            }
-        }
-        return nextPrefixIndex;
+        return [data, nextDelimiterIndex + DELIMITER.length];
     }
 }
