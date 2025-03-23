@@ -5,6 +5,7 @@ import { Command, Responses, UNKNOWN } from '../server/const';
 import { isArray, isString } from '../data/helpers';
 import { DELIMITER, type Data } from '../data/types';
 import { Storage } from '../data/Storage';
+import { buffer } from 'stream/consumers';
 
 const QUEUE_EXECUTE_INTERVAL_MS = 100;
 
@@ -23,6 +24,8 @@ export class Client {
     private waitForRDB: boolean = false;
     private commandDataQueue: Data[] = [];
     private commandDataCheckerIntervalTimer: Timer | null = null;
+    private isHandshakeCompleted = false;
+    private bytesProcessed: number = 0;
 
     constructor(
         private readonly encoder: Encoder,
@@ -81,6 +84,10 @@ export class Client {
                 continue;
             }
             this.onCommandDataHandle(commandData);
+        }
+
+        if (this.isHandshakeCompleted) {
+            this.bytesProcessed += data.length;
         }
     }
 
@@ -168,9 +175,12 @@ export class Client {
                                         this.encoder.encode([
                                             Command.REPLCONF_CMD,
                                             Responses.RESPONSE_ACK,
-                                            '0', // TODO: should be byte offset
+                                            this.bytesProcessed.toString(),
                                         ])
                                     );
+                                    if (!this.isHandshakeCompleted) {
+                                        this.isHandshakeCompleted = true;
+                                    }
                                 }
                             }
                         }
