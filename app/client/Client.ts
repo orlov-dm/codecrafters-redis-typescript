@@ -65,8 +65,7 @@ export class Client {
     }
 
     private onDataHandle(data: Buffer) {
-        const input = data.toString();
-        const commandDataEntries = this.commandParser.parse(input);
+        const commandDataEntries = this.commandParser.parse(data);
         if (
             !commandDataEntries.length ||
             commandDataEntries.every(
@@ -124,16 +123,17 @@ export class Client {
                 this.storage.setFileContent(rdbData);
                 this.waitForRDB = false;
                 console.log('Waiting for RDB file finished');
+                this.onCommandDataQueueHandle();
             }
         } else if (isArray(commandData)) {
-            if (this.waitForRDB) {
-                this.commandDataQueue.push(commandData);
-                return;
-            }
             const [command, ...rest] = commandData.value;
             if (isString(command)) {
                 switch (command.value.toLowerCase()) {
                     case Command.SET_CMD: {
+                        if (this.waitForRDB) {
+                            this.commandDataQueue.push(commandData);
+                            return;
+                        }
                         const [keyData, valueData, pxData, pxValue] = rest;
                         if (isString(keyData) && keyData.value) {
                             const hasPxArg =
@@ -151,7 +151,33 @@ export class Client {
                         }
                         break;
                     }
+                    case Command.REPLCONF_CMD: {
+                        const [subCmdData, offsetData] = rest;
+                        if (isString(subCmdData)) {
+                            switch (subCmdData.value.toLowerCase()) {
+                                case Command.REPLCONF_GETACK_CMD: {
+                                    if (
+                                        isString(offsetData) &&
+                                        offsetData.value !== '*'
+                                    ) {
+                                        console.warn(
+                                            'Strange REPLCONF ACK request'
+                                        );
+                                    }
+                                    this.connection.write(
+                                        this.encoder.encode([
+                                            Command.REPLCONF_CMD,
+                                            Responses.RESPONSE_ACK,
+                                            '0', // TODO: should be byte offset
+                                        ])
+                                    );
+                                }
+                            }
+                        }
+                    }
                 }
+            } else {
+                console.error('Unprocessed command', command);
             }
         }
     }

@@ -19,6 +19,7 @@ export enum Command {
     REPLCONF_CMD = 'replconf',
     REPLCONF_LISTENING_PORT_CMD = 'listening-port',
     REPLCONF_CAPABILITIES_CMD = 'capa',
+    REPLCONF_GETACK_CMD = 'getack',
     PSYNC_CMD = 'psync',
 }
 
@@ -26,6 +27,7 @@ export namespace Responses {
     export const RESPONSE_OK = 'OK';
     export const RESPONSE_PONG = 'PONG';
     export const RESPONSE_FULLRESYNC = 'FULLRESYNC';
+    export const RESPONSE_ACK = 'ACK';
 }
 
 export const UNKNOWN = '?';

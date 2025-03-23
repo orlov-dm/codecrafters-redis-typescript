@@ -1,33 +1,39 @@
+import { RDBStorage } from '../rdb/const';
 import { DataType, DATA_PREFIXES, DELIMITER } from './types';
 import type { Data, StringData } from './types';
 
 export class CommandParser {
     constructor() {}
 
-    public parse(input: string): (Data | null)[] {
+    public parse(buffer: Buffer): (Data | null)[] {
         let nextIndex = 0;
         const results: (Data | null)[] = [];
-        while (nextIndex < input.length) {
-            const [result, tempNextIndex] = this.parseElement(input, nextIndex);
+        while (nextIndex < buffer.length) {
+            const [result, tempNextIndex] = this.parseElement(
+                nextIndex,
+                buffer
+            );
             nextIndex = tempNextIndex;
             results.push(result);
         }
         return results;
     }
 
-    private parseElement(
-        input: string,
-        index: number = 0
-    ): [Data | null, number] {
-        const [firstChar] = input[index];
+    private parseElement(index: number, buffer: Buffer): [Data | null, number] {
+        const [firstChar] = buffer.subarray(index, index + 1).toString();
         index++;
         const type: DataType | null =
             firstChar in DATA_PREFIXES ? DATA_PREFIXES[firstChar] : null;
         if (type === null) {
-            console.error('Unknown data type', firstChar);
+            console.error(
+                'Unknown data type',
+                firstChar,
+                index,
+                JSON.stringify(buffer.toString(RDBStorage.SOURCE_ENCODING))
+            );
             return [null, index];
         }
-        let nextDelimiterIndex = input.indexOf(DELIMITER, index);
+        let nextDelimiterIndex = buffer.indexOf(DELIMITER, index);
         if (nextDelimiterIndex === -1) {
             console.error('no delimiter after data prefix');
             return [null, index];
@@ -38,14 +44,20 @@ export class CommandParser {
                 //
                 data = {
                     type,
-                    value: Number(input.slice(index, nextDelimiterIndex)),
+                    value: Number(
+                        buffer
+                            .subarray(index, nextDelimiterIndex)
+                            .toString(RDBStorage.SOURCE_ENCODING)
+                    ),
                 };
                 break;
             case DataType.SimpleString:
                 // +OK\r\n
                 data = {
                     type,
-                    value: input.slice(index, nextDelimiterIndex),
+                    value: buffer
+                        .subarray(index, nextDelimiterIndex)
+                        .toString(RDBStorage.SOURCE_ENCODING),
                 };
                 break;
             case DataType.BulkString:
@@ -55,7 +67,9 @@ export class CommandParser {
                     break;
                 }
                 const strLength = Number(
-                    input.slice(index, nextDelimiterIndex)
+                    buffer
+                        .subarray(index, nextDelimiterIndex)
+                        .toString(RDBStorage.SOURCE_ENCODING)
                 );
                 if (Number.isNaN(strLength)) {
                     console.error('Malformed length in BulkString');
@@ -69,9 +83,18 @@ export class CommandParser {
                 nextDelimiterIndex = index + strLength;
                 data = {
                     type,
-                    value: input.slice(index, nextDelimiterIndex),
+                    value: buffer
+                        .subarray(index, nextDelimiterIndex)
+                        .toString(RDBStorage.SOURCE_ENCODING),
                 };
-
+                if (
+                    !buffer
+                        .subarray(nextDelimiterIndex)
+                        .toString(RDBStorage.SOURCE_ENCODING)
+                        .startsWith(DELIMITER)
+                ) {
+                    return [data, nextDelimiterIndex];
+                }
                 break;
             case DataType.Array:
                 // *2\r\n$4\r\nECHO\r\n$3\r\nhey\r\n'
@@ -79,7 +102,11 @@ export class CommandParser {
                     console.error("Can't find length in Array");
                     break;
                 }
-                let arrLength = Number(input.slice(index, nextDelimiterIndex));
+                let arrLength = Number(
+                    buffer
+                        .subarray(index, nextDelimiterIndex)
+                        .toString(RDBStorage.SOURCE_ENCODING)
+                );
                 if (Number.isNaN(arrLength)) {
                     console.error('Malformed length in Array');
                     break;
@@ -92,8 +119,8 @@ export class CommandParser {
                 index = nextDelimiterIndex + DELIMITER.length;
                 while (arrLength--) {
                     const [arrayDataItem, newIndex] = this.parseElement(
-                        input,
-                        index
+                        index,
+                        buffer
                     );
                     if (!arrayDataItem) {
                         console.error("Can't parse element in Array");
