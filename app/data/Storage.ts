@@ -57,7 +57,6 @@ export class Storage {
             }
             if (ms) {
                 this.expiry.set(key, Date.now() + ms);
-                console.log('Expiry is set for key', key, ms);
             }
             return true;
         } catch (error) {
@@ -72,7 +71,6 @@ export class Storage {
                 return null;
             }
             if (this.expiry.has(key) && this.expiry.get(key)! <= Date.now()) {
-                console.log('Returning null insted, as key has expired');
                 this.data.delete(key);
                 this.expiry.delete(key);
                 return null;
@@ -100,7 +98,6 @@ export class Storage {
         if (!this.rdbStorageSaver) {
             return;
         }
-        console.log('data', this.data);
         this.rdbStorageSaver.save({
             data: this.data,
             expiry: this.expiry,
@@ -115,5 +112,19 @@ export class Storage {
             data: this.data,
             expiry: this.expiry,
         });
+    }
+
+    public setFileContent(fileContent: string) {
+        if (!this.rdbStorageSaver) {
+            return null;
+        }
+        const result = this.rdbStorageSaver.setFileContent(
+            Buffer.from(fileContent)
+        );
+        console.log('Result of File Content Set', result);
+        if (result) {
+            this.data = result.data;
+            this.expiry = result.expiry;
+        }
     }
 }

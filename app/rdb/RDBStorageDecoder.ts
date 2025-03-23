@@ -86,7 +86,6 @@ export class RDBStorageDecoder {
         let keyLeft: number = 0;
         while (currentIndex < buffer.length) {
             const currentByte = buffer[currentIndex];
-            console.log('Byte', currentByte.toString(16));
             switch (currentByte) {
                 case RDBStorage.DATABASE_SECTION_FLAG:
                     ++currentIndex;

@@ -4,9 +4,15 @@ import type { Data, StringData } from './types';
 export class CommandParser {
     constructor() {}
 
-    public parse(input: string): Data | null {
-        const [result] = this.parseElement(input);
-        return result;
+    public parse(input: string): (Data | null)[] {
+        let nextIndex = 0;
+        const results: (Data | null)[] = [];
+        while (nextIndex < input.length) {
+            const [result, tempNextIndex] = this.parseElement(input, nextIndex);
+            nextIndex = tempNextIndex;
+            results.push(result);
+        }
+        return results;
     }
 
     private parseElement(
@@ -60,11 +66,12 @@ export class CommandParser {
                     break;
                 }
                 index = nextDelimiterIndex + DELIMITER.length;
-                nextDelimiterIndex = input.indexOf(DELIMITER, index);
+                nextDelimiterIndex = index + strLength;
                 data = {
                     type,
                     value: input.slice(index, nextDelimiterIndex),
                 };
+
                 break;
             case DataType.Array:
                 // *2\r\n$4\r\nECHO\r\n$3\r\nhey\r\n'
@@ -99,7 +106,7 @@ export class CommandParser {
                     type,
                     value: arrayData,
                 };
-                break;
+                return [data, index];
         }
         return [data, nextDelimiterIndex + DELIMITER.length];
     }

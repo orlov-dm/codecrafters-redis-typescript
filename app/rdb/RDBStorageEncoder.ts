@@ -1,4 +1,3 @@
-import { buffer } from 'stream/consumers';
 import type { StorageState } from '../data/Storage';
 import type { InternalValueType } from '../data/types';
 import { RDBStorage } from './const';

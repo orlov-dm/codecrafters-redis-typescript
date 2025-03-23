@@ -2,7 +2,11 @@ import * as net from 'net';
 import type { Encoder } from '../data/Encoder';
 import type { CommandParser } from '../data/CommandParser';
 import { Command, Responses, UNKNOWN } from '../server/const';
-import { isString } from '../data/helpers';
+import { isArray, isString } from '../data/helpers';
+import { DELIMITER, type Data } from '../data/types';
+import { Storage } from '../data/Storage';
+
+const QUEUE_EXECUTE_INTERVAL_MS = 100;
 
 interface Config {
     masterHost: string;
@@ -14,10 +18,16 @@ export class Client {
     private readonly connection: net.Socket;
     private readonly commandsToSend: string[][] = [];
     private readonly capabilities = 'psync2';
+    private replicationOffset: number = 0;
+    private mainServerId: string = '';
+    private waitForRDB: boolean = false;
+    private commandDataQueue: Data[] = [];
+    private commandDataCheckerIntervalTimer: Timer | null = null;
 
     constructor(
         private readonly encoder: Encoder,
         private readonly commandParser: CommandParser,
+        private readonly storage: Storage,
         readonly config: Config
     ) {
         this.connection = net.createConnection(
@@ -31,7 +41,7 @@ export class Client {
                 }
             }
         );
-        this.connection.on('data', (data) => this.onDataHandler(data));
+        this.connection.on('data', (data) => this.onDataHandle(data));
         this.connection.on('end', () =>
             console.log('Disconnected from server')
         );
@@ -54,24 +64,115 @@ export class Client {
         );
     }
 
-    private onDataHandler(data: Buffer) {
+    private onDataHandle(data: Buffer) {
         const input = data.toString();
-        const commandData = this.commandParser.parse(input);
-        if (!commandData) {
+        const commandDataEntries = this.commandParser.parse(input);
+        if (
+            !commandDataEntries.length ||
+            commandDataEntries.every(
+                (commandDataEntry) => commandDataEntry === null
+            )
+        ) {
             console.error('No command data');
             return;
         }
-        if (
-            isString(commandData) &&
-            (commandData.value === Responses.RESPONSE_OK ||
-                commandData.value === Responses.RESPONSE_PONG)
-        ) {
-            console.log('Server response:', data.toString());
-            const nextCommand = this.commandsToSend.shift();
-            if (nextCommand) {
-                console.log('send next command', nextCommand);
-                this.connection.write(this.encoder.encode(nextCommand));
+        for (const commandData of commandDataEntries) {
+            if (!commandData) {
+                console.error('Invalid command data, skip');
+                continue;
             }
+            this.onCommandDataHandle(commandData);
+        }
+    }
+
+    private onCommandDataHandle(commandData: Data) {
+        if (isString(commandData)) {
+            if (
+                commandData.value === Responses.RESPONSE_OK ||
+                commandData.value === Responses.RESPONSE_PONG
+            ) {
+                const nextCommand = this.commandsToSend.shift();
+                if (nextCommand) {
+                    this.connection.write(this.encoder.encode(nextCommand));
+                }
+            } else if (
+                commandData.value.startsWith(Responses.RESPONSE_FULLRESYNC)
+            ) {
+                const delimiterIndex = commandData.value.indexOf(DELIMITER);
+                const fullResyncData = commandData.value.slice(
+                    0,
+                    delimiterIndex !== -1 ? delimiterIndex : undefined
+                );
+                const [, mainServerId, replicationOffset] =
+                    fullResyncData.split(' ');
+                this.mainServerId = mainServerId;
+                this.replicationOffset = Number(replicationOffset);
+                this.waitForRDB = true;
+
+                this.commandDataCheckerIntervalTimer = setInterval(
+                    () => this.onCommandDataQueueHandle(),
+                    QUEUE_EXECUTE_INTERVAL_MS
+                );
+
+                console.log(
+                    'Waiting for RDB file content from main server: ',
+                    this.mainServerId,
+                    this.replicationOffset
+                );
+            } else if (this.waitForRDB) {
+                const rdbData = commandData.value;
+                this.storage.setFileContent(rdbData);
+                this.waitForRDB = false;
+                console.log('Waiting for RDB file finished');
+            }
+        } else if (isArray(commandData)) {
+            if (this.waitForRDB) {
+                this.commandDataQueue.push(commandData);
+                return;
+            }
+            const [command, ...rest] = commandData.value;
+            if (isString(command)) {
+                switch (command.value.toLowerCase()) {
+                    case Command.SET_CMD: {
+                        const [keyData, valueData, pxData, pxValue] = rest;
+                        if (isString(keyData) && keyData.value) {
+                            const hasPxArg =
+                                pxData &&
+                                isString(pxData) &&
+                                pxData?.value?.toLowerCase() === 'px';
+                            const expirationMs = hasPxArg
+                                ? Number(pxValue.value)
+                                : 0;
+                            this.storage.set(
+                                keyData.value,
+                                valueData,
+                                expirationMs
+                            );
+                        }
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
+    private onCommandDataQueueHandle() {
+        if (this.waitForRDB) {
+            return;
+        }
+        while (this.commandDataQueue.length) {
+            const cmdData = this.commandDataQueue.shift();
+            if (cmdData) {
+                this.onCommandDataHandle(cmdData);
+            }
+        }
+
+        if (
+            !this.commandDataQueue.length &&
+            this.commandDataCheckerIntervalTimer
+        ) {
+            clearInterval(this.commandDataCheckerIntervalTimer);
+            return;
         }
     }
 }

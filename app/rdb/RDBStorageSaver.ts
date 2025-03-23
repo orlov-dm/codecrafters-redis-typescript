@@ -63,6 +63,18 @@ export class RDBStorageSaver {
         return this.getFileBuffer(storage);
     }
 
+    public setFileContent(fileContent: Buffer): StorageState | null {
+        const storageState = this.setFileBuffer(fileContent);
+        if (storageState) {
+            try {
+                writeFileSync(this.filePath, fileContent);
+            } catch (err) {
+                console.error(err, 'Cant write to file', this.filePath);
+            }
+        }
+        return storageState;
+    }
+
     private getFileBuffer(storage: StorageState): Buffer {
         const header = this.encoder.encodeHeader();
         const metadata = this.encoder.encodeMetadata();
@@ -73,5 +85,28 @@ export class RDBStorageSaver {
             [header, metadata, database, eofMarker].filter((part) => !!part)
         );
         return buffer;
+    }
+
+    private setFileBuffer(buffer: Buffer): StorageState | null {
+        const header = this.decoder.decodeHeader(buffer);
+        if (
+            header.value !==
+            RDBStorage.MAGIC_STRING + RDBStorage.MAGIC_STRING_VER
+        ) {
+            console.error("Magic string doesn't exist", header);
+            return null;
+        }
+        let metadata = this.decoder.decodeMetadata(buffer, header.index);
+        while (metadata.value) {
+            metadata = this.decoder.decodeMetadata(buffer, metadata.index);
+            console.log('metadata', metadata.value, metadata.index);
+        }
+
+        console.log('header and metadata', header.value);
+
+        const storage = this.decoder.decodeDatabase(buffer, metadata.index);
+
+        console.log('Restore state here', storage);
+        return storage;
     }
 }
