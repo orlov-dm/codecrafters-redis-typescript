@@ -41,7 +41,7 @@ export class Server {
     }
 
     private onDataHandler(connection: net.Socket, data: Buffer) {
-        const commandDataEntries = this.commandParser.parse(data);
+        const { data: commandDataEntries } = this.commandParser.parse(data);
         if (
             !commandDataEntries.length ||
             commandDataEntries.every(

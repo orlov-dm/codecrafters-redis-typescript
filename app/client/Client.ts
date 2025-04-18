@@ -6,6 +6,7 @@ import { isArray, isString } from '../data/helpers';
 import { DELIMITER, type Data } from '../data/types';
 import { Storage } from '../data/Storage';
 import { buffer } from 'stream/consumers';
+import { RDBStorage } from '../rdb/const';
 
 const QUEUE_EXECUTE_INTERVAL_MS = 100;
 
@@ -68,7 +69,11 @@ export class Client {
     }
 
     private onDataHandle(data: Buffer) {
-        const commandDataEntries = this.commandParser.parse(data);
+        const { data: commandDataEntries, bytesProcessed } =
+            this.commandParser.parse(data);
+        if (this.isHandshakeCompleted) {
+            this.bytesProcessed += bytesProcessed;
+        }
         if (
             !commandDataEntries.length ||
             commandDataEntries.every(
@@ -84,10 +89,6 @@ export class Client {
                 continue;
             }
             this.onCommandDataHandle(commandData);
-        }
-
-        if (this.isHandshakeCompleted) {
-            this.bytesProcessed += data.length;
         }
     }
 
@@ -188,6 +189,7 @@ export class Client {
                 }
             } else {
                 console.error('Unprocessed command', command);
+                return;
             }
         }
     }
