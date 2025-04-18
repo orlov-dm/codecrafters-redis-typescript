@@ -3,7 +3,7 @@ import { Encoder } from '../data/Encoder';
 import { Storage } from '../data/Storage';
 import { CommandParser } from '../data/CommandParser';
 import { DataType, DELIMITER } from '../data/types';
-import { isString } from '../data/helpers';
+import { isString, isNumber } from '../data/helpers';
 import { Command, LOCALHOST, Responses, UNKNOWN } from './const';
 import { RDBStorage } from '../rdb/const';
 
@@ -27,7 +27,7 @@ export class Server {
         private readonly config: ServerConfig
     ) {
         this.instance = net.createServer((connection: net.Socket) => {
-            connection.on('data', (data: Buffer) =>
+            connection.on('data', async (data: Buffer) =>
                 this.onDataHandler(connection, data)
             );
             connection.on('close', () => {
@@ -40,7 +40,7 @@ export class Server {
         this.instance.listen(this.config.port, LOCALHOST);
     }
 
-    private onDataHandler(connection: net.Socket, data: Buffer) {
+    private async onDataHandler(connection: net.Socket, data: Buffer) {
         const { data: commandDataEntries } = this.commandParser.parse(data);
         if (
             !commandDataEntries.length ||
@@ -253,7 +253,16 @@ export class Server {
                                 numReplicas.value,
                                 timeout.value
                             );
-                            reply = this.encoder.encode(0, DataType.Integer);
+
+                            if (isNumber(timeout) && isNumber(numReplicas) && this.replicaConnections.size < numReplicas.value) {
+                                await this.wait(timeout.value);
+                            }
+
+                            reply = this.encoder.encode(
+                                this.replicaConnections.size,
+                                DataType.Integer
+                            );
+
                             break;
                         }
                     }
@@ -285,5 +294,9 @@ export class Server {
 
     private static isWriteCommand(command: string) {
         return command.toLowerCase() === Command.SET_CMD;
+    }
+
+    private async wait(ms: number) {
+        await new Promise((resolve) => setTimeout(resolve, ms));
     }
 }
