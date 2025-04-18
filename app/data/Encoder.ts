@@ -15,7 +15,7 @@ export class Encoder {
         needEndDelimiter = true
     ): string {
         let parts;
-        if (!data) {
+        if (data === null) {
             return (
                 [DATA_PREFIXES_CONFIG[DataType.BulkString].prefix + '-1'].join(
                     DELIMITER
@@ -70,6 +70,13 @@ export class Encoder {
                     console.error('data', data);
                     throw new Error('Unsupported object type');
                 }
+                break;
+            }
+            case 'number': {
+                const num = data ?? -1;
+                let dataType = DataType.Integer;
+                const prefix = DATA_PREFIXES_CONFIG[dataType].prefix;
+                parts = [prefix + num.toString()];
                 break;
             }
             default:

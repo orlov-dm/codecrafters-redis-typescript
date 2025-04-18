@@ -71,7 +71,7 @@ export class CommandParser {
         let bytesProcessed = 0;
         switch (type) {
             case DataType.Integer: {
-                //
+                // :[<+|->]<value>\r\n
                 const rawData = buffer.subarray(
                     currentIndex,
                     nextDelimiterIndex

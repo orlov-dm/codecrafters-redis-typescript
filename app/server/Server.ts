@@ -244,6 +244,17 @@ export class Server {
                                 }
                                 return;
                             }
+                            break;
+                        }
+                        case Command.WAIT_CMD: {
+                            const [numReplicas, timeout] = rest;
+                            console.log(
+                                'WAIT_CMD ',
+                                numReplicas.value,
+                                timeout.value
+                            );
+                            reply = this.encoder.encode(0, DataType.Integer);
+                            break;
                         }
                     }
 

@@ -21,6 +21,7 @@ export enum Command {
     REPLCONF_CAPABILITIES_CMD = 'capa',
     REPLCONF_GETACK_CMD = 'getack',
     PSYNC_CMD = 'psync',
+    WAIT_CMD = 'wait',
 }
 
 export namespace Responses {

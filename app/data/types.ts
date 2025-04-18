@@ -108,4 +108,4 @@ export interface ArrayData {
 
 export type Data = StringData | IntegerData | ArrayData;
 
-export type InternalValueType = string | Array<InternalValueType>;
+export type InternalValueType = string | number | Array<InternalValueType>;
