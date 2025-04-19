@@ -3,8 +3,8 @@ import { Encoder } from '../data/Encoder';
 import { Storage } from '../data/Storage';
 import { CommandParser } from '../data/CommandParser';
 import { DataType, DELIMITER } from '../data/types';
-import { isString, isNumber } from '../data/helpers';
-import { Command, LOCALHOST, Responses, UNKNOWN } from './const';
+import { isString } from '../data/helpers';
+import { Command, ConfigArgs, LOCALHOST, Responses, UNKNOWN } from './const';
 import { RDBStorage } from '../rdb/const';
 
 interface ServerConfig {
@@ -17,9 +17,11 @@ interface ServerConfig {
 export class Server {
     private readonly instance: net.Server;
     private readonly serverId = crypto.randomUUID().split('-').join('');
-    private readonly replicationOffset = 0;
+    private replicationOffset = 0;
     private readonly listeningPorts: number[] = [];
     private readonly replicaConnections: Map<number, net.Socket> = new Map();
+    private replicaReplies: Map<number, number> = new Map();
+    private replicaAckTimer: Timer | null = null;
     constructor(
         private readonly encoder: Encoder,
         private readonly commandParser: CommandParser,
@@ -45,13 +47,16 @@ export class Server {
         if (
             !commandDataEntries.length ||
             commandDataEntries.every(
-                (commandDataEntry) => commandDataEntry === null
+                (commandDataEntry) => commandDataEntry.element === null
             )
         ) {
             console.error('No command data');
             return;
         }
-        for (const commandData of commandDataEntries) {
+
+        let requestAckFromReplicas = false;
+        for (const commandDataEntry of commandDataEntries) {
+            const commandData = commandDataEntry.element;
             if (!commandData) {
                 console.error('Invalid command data, skip');
                 continue;
@@ -68,7 +73,7 @@ export class Server {
                         return;
                     }
                     let reply: string | null = null;
-                    switch (command.value.toLowerCase()) {
+                    switch (command.value.toUpperCase()) {
                         case Command.PING_CMD: {
                             reply = this.encoder.encode(
                                 Responses.RESPONSE_PONG,
@@ -125,20 +130,20 @@ export class Server {
                             const [subCmdData, keyData] = rest;
                             if (
                                 isString(subCmdData) &&
-                                subCmdData.value?.toLowerCase() ===
+                                subCmdData.value?.toUpperCase() ===
                                     Command.GET_CMD &&
                                 isString(keyData)
                             ) {
                                 switch (keyData.value?.toLowerCase()) {
-                                    case Command.CONFIG_DIR_CMD:
+                                    case ConfigArgs.DIR:
                                         reply = this.encoder.encode([
-                                            Command.CONFIG_DIR_CMD,
+                                            ConfigArgs.DIR,
                                             this.config.directory,
                                         ]);
                                         break;
-                                    case Command.CONFIG_DB_FILENAME_CMD:
+                                    case ConfigArgs.DB_FILENAME:
                                         reply = this.encoder.encode([
-                                            Command.CONFIG_DB_FILENAME_CMD,
+                                            ConfigArgs.DB_FILENAME,
                                             this.config.dbFilename,
                                         ]);
                                         break;
@@ -196,11 +201,19 @@ export class Server {
                                             listeningPortValue,
                                             connection
                                         );
+                                        this.addReplicaReply();
                                         break;
                                     }
                                     case Command.REPLCONF_CAPABILITIES_CMD: {
                                         console.log('CAPA', rest);
                                         break;
+                                    }
+                                    case Responses.RESPONSE_ACK: {
+                                        console.log('Response ACK');
+                                        if (connection.remotePort) {
+                                            this.addReplicaReply();
+                                        }
+                                        return;
                                     }
                                 }
                                 reply = this.encoder.encode(
@@ -248,21 +261,16 @@ export class Server {
                         }
                         case Command.WAIT_CMD: {
                             const [numReplicas, timeout] = rest;
-                            console.log(
-                                'WAIT_CMD ',
-                                numReplicas.value,
-                                timeout.value
-                            );
+                            console.log('WAIT_CMD ', numReplicas, timeout);
 
-                            if (isNumber(timeout) && isNumber(numReplicas) && this.replicaConnections.size < numReplicas.value) {
-                                await this.wait(timeout.value);
+                            if (isString(timeout) && isString(numReplicas)) {
+                                const acks = await this.waitForReplicas(
+                                    Number(numReplicas.value),
+                                    Number(timeout.value),
+                                    this.replicationOffset
+                                );
+                                reply = this.encoder.encode(acks);
                             }
-
-                            reply = this.encoder.encode(
-                                this.replicaConnections.size,
-                                DataType.Integer
-                            );
-
                             break;
                         }
                     }
@@ -275,9 +283,7 @@ export class Server {
                     }
 
                     if (Server.isWriteCommand(command.value)) {
-                        this.listeningPorts.forEach((port) => {
-                            this.getReplicaConnection(port)?.write(data);
-                        });
+                        this.onWrite(data);
                     }
                 }
             }
@@ -293,10 +299,94 @@ export class Server {
     }
 
     private static isWriteCommand(command: string) {
-        return command.toLowerCase() === Command.SET_CMD;
+        return command.toUpperCase() === Command.SET_CMD;
     }
 
-    private async wait(ms: number) {
-        await new Promise((resolve) => setTimeout(resolve, ms));
+    private addReplicaReply() {
+        if (!this.replicaReplies.get(this.replicationOffset)) {
+            this.replicaReplies.set(this.replicationOffset, 0);
+        }
+        this.replicaReplies.set(
+            this.replicationOffset,
+            this.replicaReplies.get(this.replicationOffset)! + 1
+        );
+    }
+
+    private getReplicaReplies(offset: number): number {
+        return Number(this.replicaReplies.get(offset) ?? 0);
+    }
+
+    private async waitForReplicas(
+        requiredReplicas: number,
+        timeoutMs: number,
+        currentOffset: number
+    ): Promise<number> {
+        return new Promise((resolve) => {
+            // Immediate check
+            const firstAcked = this.getReplicaReplies(currentOffset);
+            if (firstAcked >= requiredReplicas) {
+                return resolve(firstAcked);
+            }
+
+            let resolved = false;
+
+            // Periodically check for new ACKs
+            const interval = setInterval(() => {
+                const acked = this.getReplicaReplies(currentOffset);
+                if (acked >= requiredReplicas) {
+                    clearInterval(interval);
+                    clearTimeout(timeout);
+                    resolved = true;
+                    resolve(acked);
+                }
+            }, 10); // Poll every 10ms
+
+            // Timeout fallback
+            const timeout = setTimeout(() => {
+                if (!resolved) {
+                    clearInterval(interval);
+                    resolve(this.getReplicaReplies(currentOffset)); // Return however many we got
+                }
+            }, timeoutMs);
+        });
+    }
+
+    private onWrite(data: Buffer) {
+        ++this.replicationOffset;
+
+        console.log(
+            'Write command to replicate',
+            JSON.stringify(data.toString())
+        );
+        let requestAckFromReplicas = false;
+        this.listeningPorts.forEach((port) => {
+            const replicaConnection = this.getReplicaConnection(port);
+            if (replicaConnection) {
+                requestAckFromReplicas = true;
+                replicaConnection.write(data);
+            }
+        });
+
+        // Reset ACK timer
+        if (this.replicaAckTimer) {
+            clearTimeout(this.replicaAckTimer);
+        }
+        this.replicaAckTimer = setTimeout(() => {
+            this.listeningPorts.forEach((port) => {
+                const replicaConnection = this.getReplicaConnection(port);
+                if (replicaConnection) {
+                    if (requestAckFromReplicas) {
+                        replicaConnection.write(
+                            this.encoder.encode([
+                                Command.REPLCONF_CMD,
+                                Command.REPLCONF_GETACK_CMD,
+                                '*',
+                            ])
+                        );
+                    }
+                }
+            });
+            this.replicaAckTimer = null;
+        }, 300);
     }
 }

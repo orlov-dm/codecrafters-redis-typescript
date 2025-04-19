@@ -83,7 +83,8 @@ export class Client {
             console.error('No command data');
             return;
         }
-        for (const commandData of commandDataEntries) {
+        for (const commandDataEntry of commandDataEntries) {
+            const commandData = commandDataEntry.element;
             if (!commandData) {
                 console.error('Invalid command data, skip');
                 continue;
@@ -136,7 +137,7 @@ export class Client {
         } else if (isArray(commandData)) {
             const [command, ...rest] = commandData.value;
             if (isString(command)) {
-                switch (command.value.toLowerCase()) {
+                switch (command.value.toUpperCase()) {
                     case Command.SET_CMD: {
                         if (this.waitForRDB) {
                             this.commandDataQueue.push(commandData);
@@ -162,7 +163,7 @@ export class Client {
                     case Command.REPLCONF_CMD: {
                         const [subCmdData, offsetData] = rest;
                         if (isString(subCmdData)) {
-                            switch (subCmdData.value.toLowerCase()) {
+                            switch (subCmdData.value.toUpperCase()) {
                                 case Command.REPLCONF_GETACK_CMD: {
                                     if (
                                         isString(offsetData) &&

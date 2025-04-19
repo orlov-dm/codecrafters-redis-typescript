@@ -9,7 +9,7 @@ interface ParseElementResult {
 }
 
 export interface ParseResult {
-    data: Data[];
+    data: ParseElementResult[];
     bytesProcessed: number;
 }
 
@@ -18,7 +18,7 @@ export class CommandParser {
 
     public parse(buffer: Buffer): ParseResult {
         let nextIndex = 0;
-        const results: Data[] = [];
+        const results: ParseElementResult[] = [];
         let bytesProcessed = 0;
         while (nextIndex < buffer.length) {
             const {
@@ -27,9 +27,11 @@ export class CommandParser {
                 bytesProcessed: elementBytesProcessed,
             } = this.parseElement(nextIndex, buffer);
             nextIndex = elementNextIndex;
-            if (element) {
-                results.push(element);
-            }
+            results.push({
+                element,
+                nextIndex: elementNextIndex,
+                bytesProcessed: elementBytesProcessed,
+            });
             bytesProcessed += elementBytesProcessed;
         }
         return {
@@ -39,7 +41,6 @@ export class CommandParser {
     }
 
     private parseElement(index: number, buffer: Buffer): ParseElementResult {
-        console.log('Start parsing');
         const [firstChar] = buffer.subarray(index, index + 1).toString();
         let currentIndex = index;
         currentIndex++;

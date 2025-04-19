@@ -6,22 +6,25 @@ export namespace DefaultArguments {
 }
 
 export enum Command {
-    PING_CMD = 'ping',
-    ECHO_CMD = 'echo',
-    GET_CMD = 'get',
-    SET_CMD = 'set',
-    CONFIG_CMD = 'config',
-    CONFIG_DIR_CMD = 'dir',
-    CONFIG_DB_FILENAME_CMD = 'dbfilename',
-    KEYS_CMD = 'keys',
-    INFO_CMD = 'info',
+    PING_CMD = 'PING',
+    ECHO_CMD = 'ECHO',
+    GET_CMD = 'GET',
+    SET_CMD = 'SET',
+    CONFIG_CMD = 'CONFIG',
+    KEYS_CMD = 'KEYS',
+    INFO_CMD = 'INFO',
     INFO_REPLICATION_CMD = 'replication',
-    REPLCONF_CMD = 'replconf',
+    REPLCONF_CMD = 'REPLCONF',
     REPLCONF_LISTENING_PORT_CMD = 'listening-port',
     REPLCONF_CAPABILITIES_CMD = 'capa',
-    REPLCONF_GETACK_CMD = 'getack',
-    PSYNC_CMD = 'psync',
-    WAIT_CMD = 'wait',
+    REPLCONF_GETACK_CMD = 'GETACK',
+    PSYNC_CMD = 'PSYNC',
+    WAIT_CMD = 'WAIT',
+}
+
+export enum ConfigArgs {
+    DIR = 'dir',
+    DB_FILENAME = 'dbfilename',
 }
 
 export namespace Responses {
