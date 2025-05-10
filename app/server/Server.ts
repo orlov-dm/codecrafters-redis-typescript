@@ -2,7 +2,7 @@ import * as net from 'net';
 import { Encoder } from '../data/Encoder';
 import { Storage } from '../data/Storage';
 import { CommandParser } from '../data/CommandParser';
-import { DataType, DELIMITER } from '../data/types';
+import { DataType, DELIMITER, InternalValueDataType } from '../data/types';
 import { isString } from '../data/helpers';
 import { Command, ConfigArgs, LOCALHOST, Responses, UNKNOWN } from './const';
 import { RDBStorage } from '../rdb/const';
@@ -54,7 +54,6 @@ export class Server {
             return;
         }
 
-        let requestAckFromReplicas = false;
         for (const commandDataEntry of commandDataEntries) {
             const commandData = commandDataEntry.element;
             if (!commandData) {
@@ -272,6 +271,24 @@ export class Server {
                                 reply = this.encoder.encode(acks);
                             }
                             break;
+                        }
+                        case Command.TYPE_CMD: {
+                            const [key] = rest;
+
+                            if (isString(key)) {
+                                const data = this.storage.get(key.value);
+                                if (!data) {
+                                    reply = this.encoder.encode(
+                                        InternalValueDataType.TYPE_NONE,
+                                        DataType.SimpleString
+                                    );
+                                } else {
+                                    reply = this.encoder.encode(
+                                        this.encoder.getDataType(data),
+                                        DataType.SimpleString
+                                    );
+                                }
+                            }
                         }
                     }
 

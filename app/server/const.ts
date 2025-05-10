@@ -20,6 +20,7 @@ export enum Command {
     REPLCONF_GETACK_CMD = 'GETACK',
     PSYNC_CMD = 'PSYNC',
     WAIT_CMD = 'WAIT',
+    TYPE_CMD = 'TYPE',
 }
 
 export enum ConfigArgs {

@@ -3,6 +3,7 @@ import {
     DELIMITER,
     type Data,
     DataType,
+    InternalValueDataType,
     type InternalValueType,
 } from './types';
 
@@ -22,6 +23,7 @@ export class Encoder {
                 ) + (needEndDelimiter ? DELIMITER : '')
             );
         }
+        const dataType = this.getDataType(data);
         switch (typeof data) {
             case 'string': {
                 const str = data ?? '';
@@ -83,6 +85,21 @@ export class Encoder {
                 throw new Error('Unsupported type');
         }
         return parts.join(DELIMITER) + (needEndDelimiter ? DELIMITER : '');
+    }
+
+    public getDataType(data: InternalValueType): InternalValueDataType {
+        switch (typeof data) {
+            case 'string':
+                return InternalValueDataType.TYPE_STRING;
+            case 'number':
+                return InternalValueDataType.TYPE_NUMBER;
+            case 'object': {
+                if (Array.isArray(data)) {
+                    return InternalValueDataType.TYPE_ARRAY;
+                }
+            }
+        }
+        return InternalValueDataType.TYPE_NONE;
     }
 
     private static isStringDataType(dataType: DataType) {
