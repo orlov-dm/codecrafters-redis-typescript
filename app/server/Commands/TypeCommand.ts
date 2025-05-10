@@ -8,6 +8,14 @@ export class TypeCommand extends BaseCommand {
         if (isString(key)) {
             const data = this.getStorage().get(key.value);
             if (!data) {
+                const stream = this.getStorage().getStream(key.value);
+                if (stream) {
+                    return this.encode(
+                        InternalValueDataType.TYPE_STREAM,
+                        DataType.SimpleString
+                    );
+                }
+
                 return this.encode(
                     InternalValueDataType.TYPE_NONE,
                     DataType.SimpleString

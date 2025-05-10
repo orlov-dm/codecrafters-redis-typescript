@@ -21,6 +21,7 @@ export enum Command {
     PSYNC_CMD = 'PSYNC',
     WAIT_CMD = 'WAIT',
     TYPE_CMD = 'TYPE',
+    XADD_CMD = 'XADD',
 }
 
 export enum ConfigArgs {

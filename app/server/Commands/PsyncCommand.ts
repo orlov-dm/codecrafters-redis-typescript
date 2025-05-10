@@ -27,12 +27,11 @@ export class PsyncCommand extends BaseCommand {
             isString(replOffsetData) &&
             Number(replOffsetData.value) === -1
         ) {
-            this.connection.write(
-                this.encode(
-                    `${Responses.RESPONSE_FULLRESYNC} ${this.serverId} ${this.replicationOffset}`,
-                    DataType.SimpleString
-                )
+            const writeData = this.encode(
+                `${Responses.RESPONSE_FULLRESYNC} ${this.serverId} ${this.replicationOffset}`,
+                DataType.SimpleString
             );
+            this.connection.write(writeData);
 
             const fileContent = this.getStorage().getFileContent();
             if (fileContent) {

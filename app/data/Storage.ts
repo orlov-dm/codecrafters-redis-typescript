@@ -1,5 +1,6 @@
 import { RDBStorageSaver } from '../rdb/RDBStorageSaver';
-import { isString } from './helpers';
+import { isNumber, isString } from './helpers';
+import { Stream } from './Stream';
 import {
     DataType,
     type Data,
@@ -22,6 +23,7 @@ const SAVE_INTERVAL_MS = 2000 * 10;
 export class Storage {
     private data: Map<string, InternalValueType> = new Map();
     private expiry: Map<string, number> = new Map();
+    private streams: Map<string, Stream> = new Map();
     private readonly rdbStorageSaver: RDBStorageSaver | null = null;
 
     constructor(persistenceConfig?: PersistenceConfig) {
@@ -126,5 +128,35 @@ export class Storage {
             this.data = result.data;
             this.expiry = result.expiry;
         }
+    }
+
+    public setStream(
+        streamKey: string,
+        entryId: string,
+        key: string,
+        value: Data
+    ) {
+        let stream = this.streams.get(streamKey);
+        if (!stream) {
+            stream = new Stream(streamKey);
+            this.streams.set(streamKey, stream);
+        }
+
+        let resultValue: InternalValueType;
+        if (isString(value) || isNumber(value)) {
+            resultValue = value.value;
+        } else {
+            resultValue = JSON.stringify(value.value);
+        }
+
+        stream.addEntry({
+            id: entryId,
+            key,
+            value: resultValue,
+        });
+    }
+
+    public getStream(streamKey: string): Stream | null {
+        return this.streams.get(streamKey) ?? null;
     }
 }

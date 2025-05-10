@@ -113,5 +113,6 @@ export enum InternalValueDataType {
     TYPE_STRING = 'string',
     TYPE_ARRAY = 'array',
     TYPE_NUMBER = 'number',
-    TYPE_NONE = 'none'
+    TYPE_STREAM = 'stream',
+    TYPE_NONE = 'none',
 }

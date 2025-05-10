@@ -22,6 +22,7 @@ import { ReplConfCommand } from './Commands/ReplConfCommand';
 import { PsyncCommand } from './Commands/PsyncCommand';
 import { WaitCommand } from './Commands/WaitCommand';
 import { TypeCommand } from './Commands/TypeCommand';
+import { XAddCommand } from './Commands/XAddCommand';
 
 export interface ServerConfig {
     port: number;
@@ -211,12 +212,26 @@ export class Server {
                         this.storage,
                         rest
                     ).process();
+                    break;
+                }
+                case Command.XADD_CMD: {
+                    reply = await new XAddCommand(
+                        this.encoder,
+                        this.storage,
+                        rest,
+                        (streamKey, entryId, key, value) => {
+                            this.storage.setStream(
+                                streamKey,
+                                entryId,
+                                key,
+                                value
+                            );
+                        }
+                    ).process();
+                    break;
                 }
             }
 
-            if (!reply) {
-                reply = this.encoder.encode(null);
-            }
             if (reply) {
                 connection.write(reply);
             }
