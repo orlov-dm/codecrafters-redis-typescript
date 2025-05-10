@@ -23,7 +23,6 @@ export class Encoder {
                 ) + (needEndDelimiter ? DELIMITER : '')
             );
         }
-        const dataType = this.getDataType(data);
         switch (typeof data) {
             case 'string': {
                 const str = data ?? '';
