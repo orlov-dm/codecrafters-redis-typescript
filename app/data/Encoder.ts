@@ -26,7 +26,7 @@ export class Encoder {
         switch (typeof data) {
             case 'string': {
                 const str = data ?? '';
-                let dataType = DataType.BulkString;
+                let dataType: DataType = DataType.BulkString;
                 if (enforceDataType) {
                     if (Encoder.isStringDataType(enforceDataType)) {
                         dataType = enforceDataType;
@@ -39,11 +39,19 @@ export class Encoder {
                     }
                 }
                 const prefix = DATA_PREFIXES_CONFIG[dataType].prefix;
-                if (str.length) {
-                    parts = [prefix + str.length.toString(), str];
+                if (
+                    dataType === DataType.SimpleString ||
+                    dataType === DataType.SimpleError
+                ) {
+                    parts = [prefix + str];
                 } else {
-                    parts = [prefix + '-1'];
+                    if (str.length) {
+                        parts = [prefix + str.length.toString(), str];
+                    } else {
+                        parts = [prefix + '-1'];
+                    }
                 }
+                console.log('Encoding result', data, parts);
                 break;
             }
             case 'object': {
@@ -105,7 +113,8 @@ export class Encoder {
         return (
             dataType === DataType.BulkString ||
             dataType === DataType.SimpleString ||
-            dataType === DataType.VerbatimString
+            dataType === DataType.VerbatimString ||
+            dataType === DataType.SimpleError
         );
     }
 }

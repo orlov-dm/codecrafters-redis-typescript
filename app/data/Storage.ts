@@ -1,6 +1,6 @@
 import { RDBStorageSaver } from '../rdb/RDBStorageSaver';
 import { isNumber, isString } from './helpers';
-import { Stream } from './Stream';
+import { Stream, StreamErrorCode } from './Stream';
 import {
     DataType,
     type Data,
@@ -135,7 +135,7 @@ export class Storage {
         entryId: string,
         key: string,
         value: Data
-    ) {
+    ): [boolean, StreamErrorCode] {
         let stream = this.streams.get(streamKey);
         if (!stream) {
             stream = new Stream(streamKey);
@@ -149,7 +149,7 @@ export class Storage {
             resultValue = JSON.stringify(value.value);
         }
 
-        stream.addEntry({
+        return stream.addEntry({
             id: entryId,
             key,
             value: resultValue,

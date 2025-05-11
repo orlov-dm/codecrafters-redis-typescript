@@ -219,14 +219,13 @@ export class Server {
                         this.encoder,
                         this.storage,
                         rest,
-                        (streamKey, entryId, key, value) => {
+                        (streamKey, entryId, key, value) =>
                             this.storage.setStream(
                                 streamKey,
                                 entryId,
                                 key,
                                 value
-                            );
-                        }
+                            )
                     ).process();
                     break;
                 }
