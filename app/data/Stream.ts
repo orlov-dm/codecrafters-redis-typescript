@@ -1,6 +1,6 @@
 import type { InternalValueType } from './types';
 
-interface Entry {
+export interface Entry {
     id: string;
     key: string;
     value: InternalValueType;
@@ -17,27 +17,55 @@ export class Stream {
 
     constructor(private readonly key: string) {}
 
-    public addEntry(entry: Entry): [boolean, StreamErrorCode] {
+    public addEntry(entry: Entry): [Entry | null, StreamErrorCode] {
+        console.log('Add ', entry);
+        entry = this.prepareEntry(entry);
         const [validationResult, validationError] = this.isEntryValid(entry);
         if (!validationResult) {
-            return [false, validationError];
+            return [null, validationError];
         }
         this.entries.push(entry);
-        return [true, validationError];
+        return [entry, validationError];
     }
 
     public getKey() {
         return this.key;
     }
 
+    private prepareEntry(entry: Entry) {
+        const [msPart, seqPart] = entry.id.split('-');
+        const ms = Number(msPart);
+        let seq: number;
+        if (seqPart === '*') {
+            seq = ms === 0 ? 1 : 0;
+            const lastEntry = this.entries.at(-1);
+            if (lastEntry) {
+                const [lastMs, lastSeq] = this.parseId(lastEntry.id);
+                if (lastMs === ms) {
+                    seq = lastSeq + 1;
+                }
+            }
+        } else {
+            seq = Number(seqPart);
+        }
+        entry.id = `${ms}-${seq}`;
+        return entry;
+    }
+
+    private parseId(id: string): [number, number] {
+        const [ms, seq] = id.split('-').map(Number);
+        return [ms, seq];
+    }
+
     private isEntryValid(entry: Entry): [boolean, StreamErrorCode] {
-        const [ms, sequence] = entry.id.split('-').map(Number);
+        const [ms, sequence] = this.parseId(entry.id);
+        console.log('Is Entry valid check', entry, ms, sequence);
         if (ms <= 0 && sequence <= 0) {
             return [false, StreamErrorCode.ID_IS_ZERO];
         }
         const lastEntry = this.entries[this.entries.length - 1];
         if (lastEntry) {
-            const [prevMs, prevSequence] = lastEntry.id.split('-').map(Number);
+            const [prevMs, prevSequence] = this.parseId(lastEntry.id);
             if (ms < prevMs) {
                 return [false, StreamErrorCode.ID_IS_SMALLER_OR_EQUAL];
             } else if (ms === prevMs) {

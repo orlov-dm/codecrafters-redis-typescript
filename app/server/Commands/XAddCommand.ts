@@ -1,6 +1,6 @@
 import type { Encoder } from '../../data/Encoder';
 import type { Storage } from '../../data/Storage';
-import { StreamErrorCode } from '../../data/Stream';
+import { StreamErrorCode, type Entry } from '../../data/Stream';
 import { isString } from '../../data/helpers';
 import { DataType, type Data } from '../../data/types';
 import { BaseCommand } from './BaseCommand';
@@ -15,7 +15,7 @@ export class XAddCommand extends BaseCommand {
             entryId: string,
             key: string,
             value: Data
-        ) => [boolean, StreamErrorCode]
+        ) => [Entry | null, StreamErrorCode]
     ) {
         super(encoder, storage, commandData);
     }
@@ -29,7 +29,7 @@ export class XAddCommand extends BaseCommand {
                 value
             );
             if (result) {
-                return this.encode(entryId.value, DataType.BulkString);
+                return this.encode(result.id, DataType.BulkString);
             } else {
                 if (errorCode === StreamErrorCode.ID_IS_SMALLER_OR_EQUAL) {
                     return this.encode(
