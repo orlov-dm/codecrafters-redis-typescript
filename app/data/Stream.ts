@@ -1,9 +1,13 @@
-import type { InternalValueType } from './types';
+import type { Data, InternalValueType } from './types';
+
+export interface KeyValue {
+    key: string;
+    value: InternalValueType;
+}
 
 export interface Entry {
     id: string;
-    key: string;
-    value: InternalValueType;
+    data: KeyValue[];
 }
 
 export enum StreamErrorCode {
@@ -30,6 +34,28 @@ export class Stream {
 
     public getKey() {
         return this.key;
+    }
+
+    public getRange(startId: string, endId: string): Entry[] {
+        const range: Entry[] = [];
+        const [startMs, startSeq] = this.parseId(startId);
+        const [endMs, endSeq] = this.parseId(endId);
+
+        for (let i = this.entries.length - 1; i >= 0; --i) {
+            const entry = this.entries[i];
+            const [ms, seq] = this.parseId(entry.id);
+            if (ms >= startMs && ms <= endMs) {
+                if (ms === startMs && seq < startSeq) {
+                    continue;
+                }
+                if (ms === endMs && seq > endSeq) {
+                    continue;
+                }
+                range.push(entry);
+            }
+        }
+
+        return range.reverse();
     }
 
     private prepareEntry(entry: Entry) {

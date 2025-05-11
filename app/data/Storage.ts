@@ -1,6 +1,6 @@
 import { RDBStorageSaver } from '../rdb/RDBStorageSaver';
 import { isNumber, isString } from './helpers';
-import { Stream, StreamErrorCode, type Entry } from './Stream';
+import { Stream, StreamErrorCode, type Entry, type KeyValue } from './Stream';
 import {
     DataType,
     type Data,
@@ -133,8 +133,7 @@ export class Storage {
     public setStream(
         streamKey: string,
         entryId: string,
-        key: string,
-        value: Data
+        values: Data[]
     ): [Entry | null, StreamErrorCode] {
         let stream = this.streams.get(streamKey);
         if (!stream) {
@@ -142,17 +141,27 @@ export class Storage {
             this.streams.set(streamKey, stream);
         }
 
-        let resultValue: InternalValueType;
-        if (isString(value) || isNumber(value)) {
-            resultValue = value.value;
-        } else {
-            resultValue = JSON.stringify(value.value);
-        }
+        const keyValues: KeyValue[] = [];
+        for (let i = 0; i < values.length; i += 2) {
+            const key = values[i];
+            const value = values[i + 1];
 
+            let resultValue;
+            if (isString(key)) {
+                if (isString(value) || isNumber(value)) {
+                    resultValue = value.value;
+                } else {
+                    resultValue = JSON.stringify(value.value);
+                }
+                keyValues.push({
+                    key: key.value,
+                    value: resultValue,
+                });
+            }
+        }
         return stream.addEntry({
             id: entryId,
-            key,
-            value: resultValue,
+            data: keyValues,
         });
     }
 

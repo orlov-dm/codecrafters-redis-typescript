@@ -1,6 +1,6 @@
 import type { Encoder } from '../../data/Encoder';
 import type { Storage } from '../../data/Storage';
-import { StreamErrorCode, type Entry } from '../../data/Stream';
+import { StreamErrorCode, type Entry, type KeyValue } from '../../data/Stream';
 import { isString } from '../../data/helpers';
 import { DataType, type Data } from '../../data/types';
 import { BaseCommand } from './BaseCommand';
@@ -13,20 +13,18 @@ export class XAddCommand extends BaseCommand {
         private readonly onAdd: (
             streamKey: string,
             entryId: string,
-            key: string,
-            value: Data
+            values: Data[]
         ) => [Entry | null, StreamErrorCode]
     ) {
         super(encoder, storage, commandData);
     }
     public async process(): Promise<string | null> {
-        const [streamKey, entryId, key, value] = this.getData();
-        if (isString(streamKey) && isString(entryId) && isString(key)) {
+        const [streamKey, entryId, ...rest] = this.getData();
+        if (isString(streamKey) && isString(entryId)) {
             const [result, errorCode] = this.onAdd(
                 streamKey.value,
                 entryId.value,
-                key.value,
-                value
+                rest
             );
             if (result) {
                 return this.encode(result.id, DataType.BulkString);

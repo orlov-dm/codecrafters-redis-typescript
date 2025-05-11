@@ -22,6 +22,7 @@ export enum Command {
     WAIT_CMD = 'WAIT',
     TYPE_CMD = 'TYPE',
     XADD_CMD = 'XADD',
+    XRANGE_CMD = 'XRANGE',
 }
 
 export enum ConfigArgs {

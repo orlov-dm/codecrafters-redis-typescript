@@ -23,6 +23,7 @@ import { PsyncCommand } from './Commands/PsyncCommand';
 import { WaitCommand } from './Commands/WaitCommand';
 import { TypeCommand } from './Commands/TypeCommand';
 import { XAddCommand } from './Commands/XAddCommand';
+import { XRangeCommand } from './Commands/XRangeCommand';
 
 export interface ServerConfig {
     port: number;
@@ -219,13 +220,16 @@ export class Server {
                         this.encoder,
                         this.storage,
                         rest,
-                        (streamKey, entryId, key, value) =>
-                            this.storage.setStream(
-                                streamKey,
-                                entryId,
-                                key,
-                                value
-                            )
+                        (streamKey, entryId, values) =>
+                            this.storage.setStream(streamKey, entryId, values)
+                    ).process();
+                    break;
+                }
+                case Command.XRANGE_CMD: {
+                    reply = await new XRangeCommand(
+                        this.encoder,
+                        this.storage,
+                        rest
                     ).process();
                     break;
                 }
