@@ -33,6 +33,10 @@ export class Stream {
     }
 
     private prepareEntry(entry: Entry) {
+        if (entry.id === '*') {
+            entry.id = `${Date.now()}-0`;
+        }
+
         const [msPart, seqPart] = entry.id.split('-');
         const ms = Number(msPart);
         let seq: number;
