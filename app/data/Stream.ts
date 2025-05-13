@@ -38,17 +38,22 @@ export class Stream {
 
     public getRange(startId: string, endId: string): Entry[] {
         const range: Entry[] = [];
+        const skipStartCheck = startId === '-';
+        const skipEndCheck = endId === '+';
         const [startMs, startSeq] = this.parseId(startId);
         const [endMs, endSeq] = this.parseId(endId);
 
         for (let i = this.entries.length - 1; i >= 0; --i) {
             const entry = this.entries[i];
             const [ms, seq] = this.parseId(entry.id);
-            if (ms >= startMs && ms <= endMs) {
-                if (ms === startMs && seq < startSeq) {
+            if (
+                (skipStartCheck || ms >= startMs) &&
+                (skipEndCheck || ms <= endMs)
+            ) {
+                if (!skipStartCheck && ms === startMs && seq < startSeq) {
                     continue;
                 }
-                if (ms === endMs && seq > endSeq) {
+                if (!skipEndCheck && ms === endMs && seq > endSeq) {
                     continue;
                 }
                 range.push(entry);
