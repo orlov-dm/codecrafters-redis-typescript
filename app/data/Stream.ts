@@ -83,7 +83,7 @@ export class Stream {
     }
 
     private parseId(id: string): [number, number] {
-        const [ms, seq] = id.split('-').map(Number);
+        const [ms = 0, seq = 0] = id.split('-').map(Number);
         return [ms, seq];
     }
 
