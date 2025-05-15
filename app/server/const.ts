@@ -23,6 +23,7 @@ export enum Command {
     TYPE_CMD = 'TYPE',
     XADD_CMD = 'XADD',
     XRANGE_CMD = 'XRANGE',
+    XREAD_CMD = 'XREAD',
 }
 
 export enum ConfigArgs {

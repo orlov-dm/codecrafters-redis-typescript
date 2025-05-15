@@ -36,13 +36,43 @@ export class Stream {
         return this.key;
     }
 
-    public getRange(startId: string, endId: string): Entry[] {
+    public getRange(startId: string = '-', endId: string = '+'): Entry[] {
         const range: Entry[] = [];
         const skipStartCheck = startId === '-';
         const skipEndCheck = endId === '+';
         const [startMs, startSeq] = this.parseId(startId);
         const [endMs, endSeq] = this.parseId(endId);
 
+        for (let i = this.entries.length - 1; i >= 0; --i) {
+            const entry = this.entries[i];
+            const [ms, seq] = this.parseId(entry.id);
+            if (
+                (skipStartCheck || ms >= startMs) &&
+                (skipEndCheck || ms <= endMs)
+            ) {
+                if (!skipStartCheck && ms === startMs && seq < startSeq) {
+                    continue;
+                }
+                if (!skipEndCheck && ms === endMs && seq > endSeq) {
+                    continue;
+                }
+                range.push(entry);
+            }
+        }
+
+        return range.reverse();
+    }
+
+    public getRangeExclusive(
+        startId: string = '-',
+        endId: string = '+'
+    ): Entry[] {
+        const range: Entry[] = [];
+        const skipStartCheck = startId === '-';
+        const skipEndCheck = endId === '+';
+        const [startMs, startSeq] = this.parseId(startId);
+        const [endMs, endSeq] = this.parseId(endId);
+        console.log('Get range exc', startMs, startSeq, this.entries);
         for (let i = this.entries.length - 1; i >= 0; --i) {
             const entry = this.entries[i];
             const [ms, seq] = this.parseId(entry.id);

@@ -1,9 +1,6 @@
 import { isString } from '../../data/helpers';
 import type { Entry } from '../../data/Stream';
-import type {
-    InternalValueDataType,
-    InternalValueType,
-} from '../../data/types';
+import type { InternalValueType } from '../../data/types';
 import { BaseCommand } from './BaseCommand';
 
 export class XRangeCommand extends BaseCommand {

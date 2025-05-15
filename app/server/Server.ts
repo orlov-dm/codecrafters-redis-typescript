@@ -24,6 +24,7 @@ import { WaitCommand } from './Commands/WaitCommand';
 import { TypeCommand } from './Commands/TypeCommand';
 import { XAddCommand } from './Commands/XAddCommand';
 import { XRangeCommand } from './Commands/XRangeCommand';
+import { XReadCommand } from './Commands/XReadCommand';
 
 export interface ServerConfig {
     port: number;
@@ -227,6 +228,14 @@ export class Server {
                 }
                 case Command.XRANGE_CMD: {
                     reply = await new XRangeCommand(
+                        this.encoder,
+                        this.storage,
+                        rest
+                    ).process();
+                    break;
+                }
+                case Command.XREAD_CMD: {
+                    reply = await new XReadCommand(
                         this.encoder,
                         this.storage,
                         rest
