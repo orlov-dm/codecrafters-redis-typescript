@@ -20,6 +20,7 @@ export class XAddCommand extends BaseCommand {
     }
     public async process(): Promise<string | null> {
         const [streamKey, entryId, ...rest] = this.getData();
+        console.log('XAdd', streamKey, entryId, rest);
         if (isString(streamKey) && isString(entryId)) {
             const [result, errorCode] = this.onAdd(
                 streamKey.value,

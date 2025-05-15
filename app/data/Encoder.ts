@@ -51,7 +51,6 @@ export class Encoder {
                         parts = [prefix + '-1'];
                     }
                 }
-                console.log('Encoding result', data, parts);
                 break;
             }
             case 'object': {

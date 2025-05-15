@@ -10,11 +10,26 @@ export class XReadCommand extends BaseCommand {
             if (!isString(value)) {
                 return false;
             }
-            return value.value === 'streams';
+            return value.value.toLowerCase() === 'streams';
         });
         if (streamsIndex === -1) {
             return null;
         }
+        const blockIndex = data.findIndex((value) => {
+            if (!isString(value)) {
+                return false;
+            }
+            return value.value.toLowerCase() === 'block';
+        });
+        const blockMs: number | null =
+            blockIndex !== -1 && isString(data[blockIndex + 1])
+                ? Number(data[blockIndex + 1].value)
+                : null;
+
+        if (blockMs) {
+            await this.blockThread(blockMs);
+        }
+
         const streamKeyEntryIds = data.slice(streamsIndex + 1);
         const streamKeysCount = streamKeyEntryIds.length / 2;
         const streamKeys = streamKeyEntryIds.slice(0, streamKeysCount);
@@ -37,15 +52,15 @@ export class XReadCommand extends BaseCommand {
                 const range = stream.getRangeExclusive(entryId.value);
                 result.set(stream.getKey(), range);
             }
-            const encodedRange: EncodedStream[] = [...result.entries()].map(
-                ([streamKey, entries]) => {
+            const encodedRange: EncodedStream[] = [...result.entries()]
+                .map(([streamKey, entries]) => {
                     const encodedEntries: EncodedEntry[] = entries.map(
                         (entry) => this.encodeEntry(entry)
                     );
                     return this.encodeStream(streamKey, encodedEntries);
-                }
-            );
-            return this.encode(encodedRange);
+                })
+                .filter((encodedStream) => !!encodedStream);
+            return this.encode(encodedRange.length ? encodedRange : null);
         }
         return null;
     }
@@ -61,8 +76,17 @@ export class XReadCommand extends BaseCommand {
     private encodeStream(
         streamKey: string,
         encodedEntries: EncodedEntry[]
-    ): EncodedStream {
+    ): EncodedStream | null {
+        if (!encodedEntries.length) {
+            return null;
+        }
         return [streamKey, encodedEntries];
+    }
+
+    private async blockThread(ms: number = 0) {
+        return new Promise((resolve) => {
+            setTimeout(resolve, ms);
+        });
     }
 }
 

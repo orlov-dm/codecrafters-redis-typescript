@@ -80,10 +80,10 @@ export class Stream {
                 (skipStartCheck || ms >= startMs) &&
                 (skipEndCheck || ms <= endMs)
             ) {
-                if (!skipStartCheck && ms === startMs && seq < startSeq) {
+                if (!skipStartCheck && ms === startMs && seq <= startSeq) {
                     continue;
                 }
-                if (!skipEndCheck && ms === endMs && seq > endSeq) {
+                if (!skipEndCheck && ms === endMs && seq >= endSeq) {
                     continue;
                 }
                 range.push(entry);
