@@ -46,19 +46,23 @@ export class XReadCommand extends BaseCommand {
                     isString(streamKeyData) ? streamKeyData.value : null
                 )
                 .filter((streamKey) => !!streamKey) as string[];
-            if (blockMs !== null) {
-                await this.blockThread(blockMs, streamKeys);
-            }
-            const entryIds = entryIdsData
+            let entryIds: (string | null)[] = entryIdsData
                 .map((entryIdData) =>
                     isString(entryIdData) ? entryIdData.value : null
                 )
                 .filter((entryId) => !!entryId) as string[];
+            if (blockMs !== null) {
+                entryIds = await this.blockThread(
+                    blockMs,
+                    streamKeys,
+                    entryIds
+                );
+            }
 
             const result: Map<string, Entry[]> = new Map();
             for (let i = 0; i < streamKeys.length; ++i) {
                 const streamKey = streamKeys[i];
-                const entryId = entryIds[i];
+                const entryId = entryIds[i] ?? '-';
                 const stream = this.getStorage().getStream(streamKey);
                 if (!stream) {
                     continue;
@@ -98,7 +102,22 @@ export class XReadCommand extends BaseCommand {
         return [streamKey, encodedEntries];
     }
 
-    private async blockThread(ms: number, streamKeys: string[]) {
+    private async blockThread(
+        ms: number,
+        streamKeys: string[],
+        entryIds: (string | null)[]
+    ): Promise<(string | null)[]> {
+        if (entryIds.every((entryId) => entryId === '$')) {
+            let newEntryIds: (string | null)[] = [];
+            for (let i = 0; i < streamKeys.length; ++i) {
+                const streamKey = streamKeys[i];
+                const latestEntry =
+                    this.getStorage().getStream(streamKey)?.getLatestEntry() ??
+                    null;
+                newEntryIds[i] = latestEntry?.id ?? null;
+            }
+            entryIds = newEntryIds;
+        }
         if (ms === 0 && streamKeys.length) {
             const storage = this.getStorage();
             streamKeys.forEach((streamKey) => {
@@ -115,14 +134,15 @@ export class XReadCommand extends BaseCommand {
                         console.log('Waiting for ms: ', count * 100);
                     }
                     if (!this.waitingStreams.size) {
-                        resolve(true);
+                        resolve(entryIds);
                     }
+                    ++count;
                 }, 100);
             });
         }
 
         return new Promise((resolve) => {
-            setTimeout(resolve, ms);
+            setTimeout(() => resolve(entryIds), ms);
         });
     }
 }

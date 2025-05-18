@@ -93,6 +93,10 @@ export class Stream {
         return range.reverse();
     }
 
+    public getLatestEntry(): Entry | null {
+        return this.entries.at(-1) ?? null;
+    }
+
     private prepareEntry(entry: Entry) {
         if (entry.id === '*') {
             entry.id = `${Date.now()}-0`;
