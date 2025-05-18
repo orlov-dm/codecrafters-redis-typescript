@@ -1,9 +1,17 @@
+import type { Encoder } from '../../data/Encoder';
+import type { Storage } from '../../data/Storage';
 import { isString } from '../../data/helpers';
 import type { Entry } from '../../data/Stream';
-import type { InternalValueType } from '../../data/types';
+import type { Data, InternalValueType } from '../../data/types';
 import { BaseCommand } from './BaseCommand';
+import { isNull } from 'util';
 
 export class XReadCommand extends BaseCommand {
+    private waitingStreams: Set<string> = new Set();
+    constructor(encoder: Encoder, storage: Storage, commandData: Data[] = []) {
+        super(encoder, storage, commandData);
+    }
+
     public async process(): Promise<string | null> {
         const data = this.getData();
         const streamsIndex = data.findIndex((value) => {
@@ -26,30 +34,37 @@ export class XReadCommand extends BaseCommand {
                 ? Number(data[blockIndex + 1].value)
                 : null;
 
-        if (blockMs) {
-            await this.blockThread(blockMs);
-        }
-
         const streamKeyEntryIds = data.slice(streamsIndex + 1);
         const streamKeysCount = streamKeyEntryIds.length / 2;
-        const streamKeys = streamKeyEntryIds.slice(0, streamKeysCount);
-        const entryIds = streamKeyEntryIds.slice(streamKeysCount);
+        const streamKeysData = streamKeyEntryIds.slice(0, streamKeysCount);
+        const entryIdsData = streamKeyEntryIds.slice(streamKeysCount);
 
-        console.log('XRead', streamKeys, entryIds);
-        if (streamKeys.length && entryIds.length) {
+        console.log('XRead', streamKeysData, entryIdsData);
+        if (streamKeysData.length && entryIdsData.length) {
+            const streamKeys = streamKeysData
+                .map((streamKeyData) =>
+                    isString(streamKeyData) ? streamKeyData.value : null
+                )
+                .filter((streamKey) => !!streamKey) as string[];
+            if (blockMs !== null) {
+                await this.blockThread(blockMs, streamKeys);
+            }
+            const entryIds = entryIdsData
+                .map((entryIdData) =>
+                    isString(entryIdData) ? entryIdData.value : null
+                )
+                .filter((entryId) => !!entryId) as string[];
+
             const result: Map<string, Entry[]> = new Map();
             for (let i = 0; i < streamKeys.length; ++i) {
                 const streamKey = streamKeys[i];
                 const entryId = entryIds[i];
-                if (!isString(streamKey) || !isString(entryId)) {
-                    continue;
-                }
-                const stream = this.getStorage().getStream(streamKey.value);
+                const stream = this.getStorage().getStream(streamKey);
                 if (!stream) {
                     continue;
                 }
 
-                const range = stream.getRangeExclusive(entryId.value);
+                const range = stream.getRangeExclusive(entryId);
                 result.set(stream.getKey(), range);
             }
             const encodedRange: EncodedStream[] = [...result.entries()]
@@ -83,7 +98,29 @@ export class XReadCommand extends BaseCommand {
         return [streamKey, encodedEntries];
     }
 
-    private async blockThread(ms: number = 0) {
+    private async blockThread(ms: number, streamKeys: string[]) {
+        if (ms === 0 && streamKeys.length) {
+            const storage = this.getStorage();
+            streamKeys.forEach((streamKey) => {
+                this.waitingStreams.add(streamKey);
+                storage.addStreamAddObserver(streamKey, () =>
+                    this.waitingStreams.delete(streamKey)
+                );
+            });
+
+            return new Promise((resolve) => {
+                let count = 0;
+                setInterval(() => {
+                    if (!(count % 10)) {
+                        console.log('Waiting for ms: ', count * 100);
+                    }
+                    if (!this.waitingStreams.size) {
+                        resolve(true);
+                    }
+                }, 100);
+            });
+        }
+
         return new Promise((resolve) => {
             setTimeout(resolve, ms);
         });

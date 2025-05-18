@@ -20,11 +20,15 @@ export interface StorageState {
 
 const SAVE_INTERVAL_MS = 2000 * 10;
 
+type StreamAddListener = () => void;
+
 export class Storage {
     private data: Map<string, InternalValueType> = new Map();
     private expiry: Map<string, number> = new Map();
     private streams: Map<string, Stream> = new Map();
     private readonly rdbStorageSaver: RDBStorageSaver | null = null;
+    private readonly onStreamAddListeners: Map<string, StreamAddListener[]> =
+        new Map();
 
     constructor(persistenceConfig?: PersistenceConfig) {
         console.log('Storage config', persistenceConfig);
@@ -159,13 +163,29 @@ export class Storage {
                 });
             }
         }
-        return stream.addEntry({
+        const result = stream.addEntry({
             id: entryId,
             data: keyValues,
         });
+
+        const listeners = this.onStreamAddListeners.get(streamKey);
+        if (listeners) {
+            listeners.forEach((listener) => listener());
+        }
+
+        return result;
     }
 
     public getStream(streamKey: string): Stream | null {
         return this.streams.get(streamKey) ?? null;
+    }
+
+    public addStreamAddObserver(streamKey: string, callback: () => void) {
+        const listeners = this.onStreamAddListeners.get(streamKey);
+        if (!listeners) {
+            this.onStreamAddListeners.set(streamKey, [callback]);
+            return;
+        }
+        this.onStreamAddListeners.set(streamKey, [...listeners, callback]);
     }
 }
