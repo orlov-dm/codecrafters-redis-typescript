@@ -25,6 +25,7 @@ import { TypeCommand } from './Commands/TypeCommand';
 import { XAddCommand } from './Commands/XAddCommand';
 import { XRangeCommand } from './Commands/XRangeCommand';
 import { XReadCommand } from './Commands/XReadCommand';
+import { IncrCommand } from './Commands/IncrCommand';
 
 export interface ServerConfig {
     port: number;
@@ -236,6 +237,14 @@ export class Server {
                 }
                 case Command.XREAD_CMD: {
                     reply = await new XReadCommand(
+                        this.encoder,
+                        this.storage,
+                        rest
+                    ).process();
+                    break;
+                }
+                case Command.INCR_CMD: {
+                    reply = await new IncrCommand(
                         this.encoder,
                         this.storage,
                         rest

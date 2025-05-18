@@ -1,3 +1,4 @@
+import util from 'node:util';
 import { RDBStorageSaver } from '../rdb/RDBStorageSaver';
 import { isNumber, isString } from './helpers';
 import { Stream, StreamErrorCode, type Entry, type KeyValue } from './Stream';
@@ -83,6 +84,28 @@ export class Storage {
             }
             const value = this.data.get(key);
             return value ?? null;
+        } catch (error) {
+            console.error(error);
+        }
+        return null;
+    }
+
+    public incr(key: string): number | null {
+        try {
+            if (!this.data.has(key)) {
+                return null;
+            }
+            const value = this.data.get(key);
+            if (value === undefined) {
+                return null;
+            }
+            const numValue = Number(value);
+            if (Number.isNaN(numValue)) {
+                return null;
+            }
+            const newValue = numValue + 1;
+            this.data.set(key, newValue);
+            return newValue;
         } catch (error) {
             console.error(error);
         }
