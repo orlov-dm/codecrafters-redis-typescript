@@ -25,6 +25,7 @@ export enum Command {
     XRANGE_CMD = 'XRANGE',
     XREAD_CMD = 'XREAD',
     INCR_CMD = 'INCR',
+    MULTI_CMD = 'MULTI',
 }
 
 export enum ConfigArgs {
