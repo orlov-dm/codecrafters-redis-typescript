@@ -8,6 +8,12 @@ export class IncrCommand extends BaseCommand {
 
         if (isString(key)) {
             const value = this.getStorage().incr(key.value);
+            if (value === null) {
+                return this.encode(
+                    'ERR value is not an integer or out of range',
+                    DataType.SimpleError
+                );
+            }
             return this.encode(value, DataType.Integer);
         }
         return null;
