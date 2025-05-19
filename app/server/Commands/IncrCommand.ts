@@ -1,4 +1,5 @@
 import { isString } from '../../data/helpers';
+import { DataType } from '../../data/types';
 import { BaseCommand } from './BaseCommand';
 
 export class IncrCommand extends BaseCommand {
@@ -7,7 +8,7 @@ export class IncrCommand extends BaseCommand {
 
         if (isString(key)) {
             const value = this.getStorage().incr(key.value);
-            return this.encode(value);
+            return this.encode(value, DataType.Integer);
         }
         return null;
     }

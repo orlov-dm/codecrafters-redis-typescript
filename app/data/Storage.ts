@@ -92,14 +92,8 @@ export class Storage {
 
     public incr(key: string): number | null {
         try {
-            if (!this.data.has(key)) {
-                return null;
-            }
             const value = this.data.get(key);
-            if (value === undefined) {
-                return null;
-            }
-            const numValue = Number(value);
+            const numValue = Number(value ?? 0);
             if (Number.isNaN(numValue)) {
                 return null;
             }

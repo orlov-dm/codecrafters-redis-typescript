@@ -5,8 +5,6 @@ import { Command, Responses, UNKNOWN } from '../server/const';
 import { isArray, isString } from '../data/helpers';
 import { DELIMITER, type Data } from '../data/types';
 import { Storage } from '../data/Storage';
-import { buffer } from 'stream/consumers';
-import { RDBStorage } from '../rdb/const';
 
 const QUEUE_EXECUTE_INTERVAL_MS = 100;
 

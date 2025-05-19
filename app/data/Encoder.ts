@@ -1,3 +1,4 @@
+import { Stream } from 'stream';
 import {
     DATA_PREFIXES_CONFIG,
     DELIMITER,
@@ -25,7 +26,6 @@ export class Encoder {
         }
         switch (typeof data) {
             case 'string': {
-                const str = data ?? '';
                 let dataType: DataType = DataType.BulkString;
                 if (enforceDataType) {
                     if (Encoder.isStringDataType(enforceDataType)) {
@@ -38,19 +38,7 @@ export class Encoder {
                         );
                     }
                 }
-                const prefix = DATA_PREFIXES_CONFIG[dataType].prefix;
-                if (
-                    dataType === DataType.SimpleString ||
-                    dataType === DataType.SimpleError
-                ) {
-                    parts = [prefix + str];
-                } else {
-                    if (str.length) {
-                        parts = [prefix + str.length.toString(), str];
-                    } else {
-                        parts = [prefix + '-1'];
-                    }
-                }
+                parts = this.parseString(data, dataType);
                 break;
             }
             case 'object': {
@@ -81,12 +69,33 @@ export class Encoder {
                 break;
             }
             case 'number': {
-                const num = data ?? -1;
-                let dataType = DataType.Integer;
-                const prefix = DATA_PREFIXES_CONFIG[dataType].prefix;
-                parts = [prefix + num.toString()];
+                let dataType: DataType = DataType.BulkString;
+                if (enforceDataType) {
+                    if (
+                        Encoder.isStringDataType(enforceDataType) ||
+                        Encoder.isNumberDataType(enforceDataType)
+                    ) {
+                        dataType = enforceDataType;
+                    } else {
+                        console.warn(
+                            'Encoder: enforced data type is wrong',
+                            typeof data,
+                            enforceDataType
+                        );
+                    }
+                }
+
+                if (Encoder.isNumberDataType(dataType)) {
+                    parts = this.parseInteger(data);
+                } else if (Encoder.isStringDataType(dataType)) {
+                    parts = this.parseString(String(data), dataType);
+                } else {
+                    console.error('data', data);
+                    throw new Error('Unsupported object type');
+                }
                 break;
             }
+
             default:
                 throw new Error('Unsupported type');
         }
@@ -108,6 +117,28 @@ export class Encoder {
         return InternalValueDataType.TYPE_NONE;
     }
 
+    private parseString(data: string, dataType: DataType): string[] {
+        const str = data ?? '';
+        const prefix = DATA_PREFIXES_CONFIG[dataType].prefix;
+        if (!str.length) {
+            return [prefix + '-1'];
+        }
+
+        if (
+            dataType === DataType.SimpleString ||
+            dataType === DataType.SimpleError
+        ) {
+            return [prefix + str];
+        }
+        return [prefix + str.length.toString(), str];
+    }
+    private parseInteger(data: number): string[] {
+        const num = data ?? -1;
+        let dataType = DataType.Integer;
+        const prefix = DATA_PREFIXES_CONFIG[dataType].prefix;
+        return [prefix + num.toString()];
+    }
+
     private static isStringDataType(dataType: DataType) {
         return (
             dataType === DataType.BulkString ||
@@ -115,5 +146,9 @@ export class Encoder {
             dataType === DataType.VerbatimString ||
             dataType === DataType.SimpleError
         );
+    }
+
+    private static isNumberDataType(dataType: DataType) {
+        return dataType === DataType.Integer;
     }
 }

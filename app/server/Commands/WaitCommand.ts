@@ -1,7 +1,7 @@
 import type { Encoder } from '../../data/Encoder';
 import { isString } from '../../data/helpers';
 import type { Storage } from '../../data/Storage';
-import type { Data } from '../../data/types';
+import { DataType, type Data } from '../../data/types';
 import { BaseCommand } from './BaseCommand';
 
 export class WaitCommand extends BaseCommand {
@@ -25,7 +25,7 @@ export class WaitCommand extends BaseCommand {
                 Number(numReplicas.value),
                 Number(timeout.value)
             );
-            return this.encode(acks);
+            return this.encode(acks, DataType.Integer);
         }
         return null;
     }
