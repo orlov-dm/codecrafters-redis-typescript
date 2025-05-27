@@ -1,13 +1,7 @@
-import util from 'node:util';
 import { RDBStorageSaver } from '../rdb/RDBStorageSaver';
 import { isNumber, isString } from './helpers';
 import { Stream, StreamErrorCode, type Entry, type KeyValue } from './Stream';
-import {
-    DataType,
-    type Data,
-    type InternalValueType,
-    type StringData,
-} from './types';
+import { type Data, type InternalValueType } from './types';
 
 export interface PersistenceConfig {
     dir: string;

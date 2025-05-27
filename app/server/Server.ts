@@ -27,12 +27,18 @@ import { XRangeCommand } from './Commands/XRangeCommand';
 import { XReadCommand } from './Commands/XReadCommand';
 import { IncrCommand } from './Commands/IncrCommand';
 import { MultiCommand } from './Commands/MultiCommand';
+import { ExecCommand } from './Commands/ExecCommand';
 
 export interface ServerConfig {
     port: number;
     directory: string;
     dbFilename: string;
     isReplica: boolean;
+}
+
+export interface CommandQueueContext {
+    commandData: Data;
+    data: Buffer;
 }
 
 export class Server {
@@ -43,6 +49,7 @@ export class Server {
     private readonly replicaConnections: Map<number, net.Socket> = new Map();
     private replicaReplies: Map<number, number> = new Map();
     private replicaAckTimer: Timer | null = null;
+    private commandQueue: Map<net.Socket, CommandQueueContext[]> = new Map();
     constructor(
         private readonly encoder: Encoder,
         private readonly commandParser: CommandParser,
@@ -99,6 +106,16 @@ export class Server {
             console.warn('Empty array data');
             return;
         }
+
+        if (this.commandQueue.has(connection)) {
+            const queue = this.commandQueue.get(connection);
+            queue?.push({
+                commandData,
+                data: data.subarray(),
+            });
+            return;
+        }
+
         const [command, ...rest] = commandData.value;
         if (isString(command)) {
             if (!command.value) {
@@ -256,7 +273,27 @@ export class Server {
                     reply = await new MultiCommand(
                         this.encoder,
                         this.storage,
-                        rest
+                        rest,
+                        () => this.commandQueue.set(connection, [])
+                    ).process();
+                    break;
+                }
+                case Command.EXEC_CMD: {
+                    reply = await new ExecCommand(
+                        this.encoder,
+                        this.storage,
+                        rest,
+                        this.commandQueue.get(connection) ?? null,
+                        (commands) => {
+                            for (const commandContext of commands) {
+                                this.processCommand(
+                                    connection,
+                                    commandContext.data,
+                                    commandContext.commandData
+                                );
+                            }
+                            this.commandQueue.delete(connection);
+                        }
                     ).process();
                     break;
                 }
