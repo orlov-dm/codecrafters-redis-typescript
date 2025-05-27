@@ -20,6 +20,10 @@ export class ExecCommand extends BaseCommand {
             return this.encode('ERR EXEC without MULTI', DataType.SimpleError);
         }
         this.onExecStart(this.commands);
-        return this.encode(Responses.RESPONSE_OK);
+        if (this.commands.length) {
+            return this.encode(Responses.RESPONSE_OK);
+        } else {
+            return this.encode([]);
+        }
     }
 }

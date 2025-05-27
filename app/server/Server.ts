@@ -107,16 +107,20 @@ export class Server {
             return;
         }
 
-        if (this.commandQueue.has(connection)) {
-            const queue = this.commandQueue.get(connection);
-            queue?.push({
-                commandData,
-                data: data.subarray(),
-            });
-            return;
-        }
-
         const [command, ...rest] = commandData.value;
+        if (this.commandQueue.has(connection)) {
+            const isExec =
+                isString(command) &&
+                command.value.toUpperCase() === Command.EXEC_CMD;
+            if (!isExec) {
+                const queue = this.commandQueue.get(connection);
+                queue?.push({
+                    commandData,
+                    data: data.subarray(),
+                });
+                return;
+            }
+        }
         if (isString(command)) {
             if (!command.value) {
                 console.warn('Empty string data');
