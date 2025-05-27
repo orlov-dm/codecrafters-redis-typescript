@@ -39,6 +39,7 @@ export namespace Responses {
     export const RESPONSE_PONG = 'PONG';
     export const RESPONSE_FULLRESYNC = 'FULLRESYNC';
     export const RESPONSE_ACK = 'ACK';
+    export const RESPONSE_QUEUED = 'QUEUED';
 }
 
 export const UNKNOWN = '?';

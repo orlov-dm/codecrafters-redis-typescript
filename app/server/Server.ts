@@ -114,10 +114,18 @@ export class Server {
                 command.value.toUpperCase() === Command.EXEC_CMD;
             if (!isExec) {
                 const queue = this.commandQueue.get(connection);
-                queue?.push({
-                    commandData,
-                    data: data.subarray(),
-                });
+                if (queue) {
+                    queue.push({
+                        commandData,
+                        data: data.subarray(),
+                    });
+                    connection.write(
+                        this.encoder.encode(
+                            Responses.RESPONSE_QUEUED,
+                            DataType.SimpleString
+                        )
+                    );
+                }
                 return;
             }
         }
