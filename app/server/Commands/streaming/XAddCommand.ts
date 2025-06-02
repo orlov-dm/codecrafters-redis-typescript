@@ -1,9 +1,13 @@
-import type { Encoder } from '../../data/Encoder';
-import type { Storage } from '../../data/Storage';
-import { StreamErrorCode, type Entry, type KeyValue } from '../../data/Stream';
-import { isString } from '../../data/helpers';
-import { DataType, type Data } from '../../data/types';
-import { BaseCommand, type CommandResponse } from './BaseCommand';
+import type { Encoder } from '../../../data/Encoder';
+import type { Storage } from '../../../data/Storage';
+import {
+    StreamErrorCode,
+    type Entry,
+    type KeyValue,
+} from '../../../data/Stream';
+import { isString } from '../../../data/helpers';
+import { DataType, type Data } from '../../../data/types';
+import { BaseCommand, type CommandResponse } from '../BaseCommand';
 
 export class XAddCommand extends BaseCommand {
     constructor(

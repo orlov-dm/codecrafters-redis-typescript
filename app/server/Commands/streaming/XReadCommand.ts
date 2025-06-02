@@ -1,9 +1,9 @@
-import type { Encoder } from '../../data/Encoder';
-import type { Storage } from '../../data/Storage';
-import { isString } from '../../data/helpers';
-import type { Entry } from '../../data/Stream';
-import type { Data, InternalValueType } from '../../data/types';
-import { BaseCommand, type CommandResponse } from './BaseCommand';
+import type { Encoder } from '../../../data/Encoder';
+import type { Storage } from '../../../data/Storage';
+import { isString } from '../../../data/helpers';
+import type { Entry } from '../../../data/Stream';
+import type { Data, InternalValueType } from '../../../data/types';
+import { BaseCommand, type CommandResponse } from '../BaseCommand';
 import { isNull } from 'util';
 
 export class XReadCommand extends BaseCommand {

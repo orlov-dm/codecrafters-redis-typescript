@@ -1,7 +1,7 @@
-import { isString } from '../../data/helpers';
-import type { Entry } from '../../data/Stream';
-import type { InternalValueType } from '../../data/types';
-import { BaseCommand, type CommandResponse } from './BaseCommand';
+import { isString } from '../../../data/helpers';
+import type { Entry } from '../../../data/Stream';
+import type { InternalValueType } from '../../../data/types';
+import { BaseCommand, type CommandResponse } from '../BaseCommand';
 
 export class XRangeCommand extends BaseCommand {
     public async process(): Promise<CommandResponse | null> {
