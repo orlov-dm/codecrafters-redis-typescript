@@ -23,6 +23,7 @@ import { IncrCommand } from './Commands/IncrCommand';
 import { MultiCommand } from './Commands/transactions/MultiCommand';
 import { ExecCommand } from './Commands/transactions/ExecCommand';
 import type { CommandResponse } from './Commands/BaseCommand';
+import { DiscardCommand } from './Commands/transactions/DiscardCommand';
 
 export interface ServerConfig {
     port: number;
@@ -105,10 +106,13 @@ export class Server {
 
         const [command, ...rest] = commandData.value;
         if (this.commandQueue.has(connection)) {
-            const isExec =
+            const isTransactionExec =
                 isString(command) &&
                 command.value.toUpperCase() === Command.EXEC_CMD;
-            if (!isExec) {
+            const isTransactionDiscard =
+                isString(command) &&
+                command.value.toUpperCase() === Command.DISCARD_CMD;
+            if (!isTransactionExec && !isTransactionDiscard) {
                 const queue = this.commandQueue.get(connection);
                 if (queue) {
                     queue.push({
@@ -284,6 +288,16 @@ export class Server {
                         this.storage,
                         rest,
                         () => this.commandQueue.set(connection, [])
+                    ).process();
+                    break;
+                }
+                case Command.DISCARD_CMD: {
+                    commandResponse = await new DiscardCommand(
+                        this.encoder,
+                        this.storage,
+                        rest,
+                        this.commandQueue.get(connection) ?? null,
+                        () => this.commandQueue.delete(connection)
                     ).process();
                     break;
                 }

@@ -26,6 +26,7 @@ export enum Command {
     XREAD_CMD = 'XREAD',
     INCR_CMD = 'INCR',
     MULTI_CMD = 'MULTI',
+    DISCARD_CMD = 'DISCARD',
     EXEC_CMD = 'EXEC',
 }
 
