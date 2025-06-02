@@ -1,5 +1,5 @@
 import * as net from 'net';
-import { Encoder } from '../data/Encoder';
+import { Encoder, type EncodeData } from '../data/Encoder';
 import { Storage } from '../data/Storage';
 import { CommandParser } from '../data/CommandParser';
 import {
@@ -28,6 +28,7 @@ import { XReadCommand } from './Commands/XReadCommand';
 import { IncrCommand } from './Commands/IncrCommand';
 import { MultiCommand } from './Commands/MultiCommand';
 import { ExecCommand } from './Commands/ExecCommand';
+import type { CommandResponse } from './Commands/BaseCommand';
 
 export interface ServerConfig {
     port: number;
@@ -95,16 +96,17 @@ export class Server {
     private async processCommand(
         connection: net.Socket,
         data: Buffer,
-        commandData: Data
-    ) {
+        commandData: Data,
+        isEnqueued: boolean = false
+    ): Promise<CommandResponse | null> {
         if (commandData.type !== DataType.Array) {
             console.warn('No known commands of not Array type');
-            return;
+            return null;
         }
 
         if (!commandData.value) {
             console.warn('Empty array data');
-            return;
+            return null;
         }
 
         const [command, ...rest] = commandData.value;
@@ -120,31 +122,32 @@ export class Server {
                         data: data.subarray(),
                     });
                     connection.write(
-                        this.encoder.encode(
-                            Responses.RESPONSE_QUEUED,
-                            DataType.SimpleString
-                        )
+                        this.encoder.encode(Responses.RESPONSE_QUEUED, {
+                            enforceDataType: DataType.SimpleString,
+                        })
                     );
                 }
-                return;
+                return null;
             }
         }
+        let reply: string = '';
+
         if (isString(command)) {
             if (!command.value) {
                 console.warn('Empty string data');
-                return;
+                return null;
             }
-            let reply: string | null = null;
+            let commandResponse: CommandResponse | null = null;
             switch (command.value.toUpperCase()) {
                 case Command.PING_CMD: {
-                    reply = await new PingCommand(
+                    commandResponse = await new PingCommand(
                         this.encoder,
                         this.storage
                     ).process();
                     break;
                 }
                 case Command.ECHO_CMD: {
-                    reply = await new EchoCommand(
+                    commandResponse = await new EchoCommand(
                         this.encoder,
                         this.storage,
                         rest
@@ -152,7 +155,7 @@ export class Server {
                     break;
                 }
                 case Command.SET_CMD: {
-                    reply = await new SetCommand(
+                    commandResponse = await new SetCommand(
                         this.encoder,
                         this.storage,
                         rest
@@ -160,7 +163,7 @@ export class Server {
                     break;
                 }
                 case Command.GET_CMD: {
-                    reply = await new GetCommand(
+                    commandResponse = await new GetCommand(
                         this.encoder,
                         this.storage,
                         rest
@@ -168,7 +171,7 @@ export class Server {
                     break;
                 }
                 case Command.CONFIG_CMD: {
-                    reply = await new ConfigCommand(
+                    commandResponse = await new ConfigCommand(
                         this.encoder,
                         this.storage,
                         rest,
@@ -177,7 +180,7 @@ export class Server {
                     break;
                 }
                 case Command.KEYS_CMD: {
-                    reply = await new KeysCommand(
+                    commandResponse = await new KeysCommand(
                         this.encoder,
                         this.storage,
                         rest
@@ -185,7 +188,7 @@ export class Server {
                     break;
                 }
                 case Command.INFO_CMD: {
-                    reply = await new InfoCommand(
+                    commandResponse = await new InfoCommand(
                         this.encoder,
                         this.storage,
                         rest,
@@ -196,7 +199,7 @@ export class Server {
                     break;
                 }
                 case Command.REPLCONF_CMD: {
-                    reply = await new ReplConfCommand(
+                    commandResponse = await new ReplConfCommand(
                         this.encoder,
                         this.storage,
                         rest,
@@ -214,7 +217,7 @@ export class Server {
                     break;
                 }
                 case Command.PSYNC_CMD: {
-                    reply = await new PsyncCommand(
+                    commandResponse = await new PsyncCommand(
                         this.encoder,
                         this.storage,
                         rest,
@@ -225,7 +228,7 @@ export class Server {
                     break;
                 }
                 case Command.WAIT_CMD: {
-                    reply = await new WaitCommand(
+                    commandResponse = await new WaitCommand(
                         this.encoder,
                         this.storage,
                         rest,
@@ -240,7 +243,7 @@ export class Server {
                     break;
                 }
                 case Command.TYPE_CMD: {
-                    reply = await new TypeCommand(
+                    commandResponse = await new TypeCommand(
                         this.encoder,
                         this.storage,
                         rest
@@ -248,7 +251,7 @@ export class Server {
                     break;
                 }
                 case Command.XADD_CMD: {
-                    reply = await new XAddCommand(
+                    commandResponse = await new XAddCommand(
                         this.encoder,
                         this.storage,
                         rest,
@@ -258,7 +261,7 @@ export class Server {
                     break;
                 }
                 case Command.XRANGE_CMD: {
-                    reply = await new XRangeCommand(
+                    commandResponse = await new XRangeCommand(
                         this.encoder,
                         this.storage,
                         rest
@@ -266,7 +269,7 @@ export class Server {
                     break;
                 }
                 case Command.XREAD_CMD: {
-                    reply = await new XReadCommand(
+                    commandResponse = await new XReadCommand(
                         this.encoder,
                         this.storage,
                         rest
@@ -274,7 +277,7 @@ export class Server {
                     break;
                 }
                 case Command.INCR_CMD: {
-                    reply = await new IncrCommand(
+                    commandResponse = await new IncrCommand(
                         this.encoder,
                         this.storage,
                         rest
@@ -282,7 +285,7 @@ export class Server {
                     break;
                 }
                 case Command.MULTI_CMD: {
-                    reply = await new MultiCommand(
+                    commandResponse = await new MultiCommand(
                         this.encoder,
                         this.storage,
                         rest,
@@ -291,34 +294,65 @@ export class Server {
                     break;
                 }
                 case Command.EXEC_CMD: {
-                    reply = await new ExecCommand(
+                    const commandResponses = await new ExecCommand(
                         this.encoder,
                         this.storage,
                         rest,
                         this.commandQueue.get(connection) ?? null,
-                        (commands) => {
-                            for (const commandContext of commands) {
-                                this.processCommand(
-                                    connection,
-                                    commandContext.data,
-                                    commandContext.commandData
-                                );
-                            }
+                        async (commands) => {
                             this.commandQueue.delete(connection);
+                            const responses = await Promise.all(
+                                commands.map((commandContext) =>
+                                    this.processCommand(
+                                        connection,
+                                        commandContext.data,
+                                        commandContext.commandData,
+                                        true
+                                    )
+                                )
+                            );
+                            return responses;
                         }
-                    ).process();
+                    ).processMulti();
+
+                    if (commandResponses) {
+                        if (
+                            commandResponses.length === 1 &&
+                            commandResponses[0].dataType ===
+                                DataType.SimpleError
+                        ) {
+                            commandResponse = commandResponses[0];
+                        } else {
+                            const encodeData: EncodeData[] =
+                                commandResponses.map((response) => ({
+                                    data: response.data,
+                                    dataType: response.dataType,
+                                }));
+                            reply = this.encoder.encodeArray(encodeData);
+                        }
+                    }
                     break;
                 }
+            }
+
+            if (commandResponse && !isEnqueued) {
+                reply = this.encoder.encode(commandResponse.data, {
+                    enforceDataType: commandResponse.dataType,
+                });
             }
 
             if (reply) {
                 connection.write(reply);
             }
 
-            if (Server.isWriteCommand(command.value)) {
+            if (Server.isWriteCommand(command.value) && !isEnqueued) {
                 this.onWrite(data);
             }
+
+            return commandResponse;
         }
+
+        return null;
     }
 
     private getReplicaConnection(port: number): net.Socket | null {
@@ -385,10 +419,6 @@ export class Server {
     private onWrite(data: Buffer) {
         ++this.replicationOffset;
 
-        console.log(
-            'Write command to replicate',
-            JSON.stringify(data.toString())
-        );
         let requestAckFromReplicas = false;
         this.listeningPorts.forEach((port) => {
             const replicaConnection = this.getReplicaConnection(port);

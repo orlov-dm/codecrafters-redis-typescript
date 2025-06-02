@@ -1,12 +1,14 @@
 import { isString } from '../../data/helpers';
-import { BaseCommand } from './BaseCommand';
+import { BaseCommand, type CommandResponse } from './BaseCommand';
 
 export class GetCommand extends BaseCommand {
-    public async process(): Promise<string | null> {
+    public async process(): Promise<CommandResponse | null> {
         const [keyData] = this.getData();
         if (isString(keyData) && keyData.value) {
-            const getValue = this.getStorage().get(keyData.value);
-            return this.encode(getValue);
+            const value = this.getStorage().get(keyData.value);
+            return {
+                data: value,
+            };
         }
         return null;
     }

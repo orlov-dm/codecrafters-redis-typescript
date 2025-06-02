@@ -108,7 +108,11 @@ export interface ArrayData {
 
 export type Data = StringData | IntegerData | ArrayData;
 
-export type InternalValueType = string | number | Array<InternalValueType>;
+export type InternalValueType =
+    | string
+    | number
+    | Array<InternalValueType>
+    | null;
 export enum InternalValueDataType {
     TYPE_STRING = 'string',
     TYPE_ARRAY = 'array',

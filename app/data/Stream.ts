@@ -1,4 +1,4 @@
-import type { Data, InternalValueType } from './types';
+import type { InternalValueType } from './types';
 
 export interface KeyValue {
     key: string;

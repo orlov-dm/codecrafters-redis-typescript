@@ -3,7 +3,7 @@ import { isString } from '../../data/helpers';
 import { Storage } from '../../data/Storage';
 import { DataType, type Data } from '../../data/types';
 import { Command, Responses } from '../const';
-import { BaseCommand } from './BaseCommand';
+import { BaseCommand, type CommandResponse } from './BaseCommand';
 
 export class ReplConfCommand extends BaseCommand {
     constructor(
@@ -15,7 +15,8 @@ export class ReplConfCommand extends BaseCommand {
     ) {
         super(encoder, storage, commandData);
     }
-    public async process(): Promise<string | null> {
+
+    public async process(): Promise<CommandResponse | null> {
         const [subCmdData] = this.getData();
         if (isString(subCmdData)) {
             switch (subCmdData.value) {
@@ -35,7 +36,10 @@ export class ReplConfCommand extends BaseCommand {
                     return null;
                 }
             }
-            return this.encode(Responses.RESPONSE_OK, DataType.SimpleString);
+            return {
+                data: Responses.RESPONSE_OK,
+                dataType: DataType.SimpleString,
+            };
         }
         return null;
     }

@@ -1,10 +1,10 @@
 import { isString } from '../../data/helpers';
 import type { Entry } from '../../data/Stream';
 import type { InternalValueType } from '../../data/types';
-import { BaseCommand } from './BaseCommand';
+import { BaseCommand, type CommandResponse } from './BaseCommand';
 
 export class XRangeCommand extends BaseCommand {
-    public async process(): Promise<string | null> {
+    public async process(): Promise<CommandResponse | null> {
         const [streamKey, entryFrom, entryTo] = this.getData();
         console.log('XRange', streamKey, entryFrom, entryTo);
         if (isString(streamKey)) {
@@ -18,7 +18,9 @@ export class XRangeCommand extends BaseCommand {
                 const encodedRange = range.map((entry) =>
                     this.encodeEntry(entry)
                 );
-                return this.encode(encodedRange);
+                return {
+                    data: encodedRange,
+                };
             }
         }
         return null;

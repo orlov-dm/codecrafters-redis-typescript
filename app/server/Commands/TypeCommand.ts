@@ -1,30 +1,30 @@
 import { isString } from '../../data/helpers';
 import { DataType, InternalValueDataType } from '../../data/types';
-import { BaseCommand } from './BaseCommand';
+import { BaseCommand, type CommandResponse } from './BaseCommand';
 
 export class TypeCommand extends BaseCommand {
-    public async process(): Promise<string | null> {
+    public async process(): Promise<CommandResponse | null> {
         const [key] = this.getData();
         if (isString(key)) {
             const data = this.getStorage().get(key.value);
             if (!data) {
                 const stream = this.getStorage().getStream(key.value);
                 if (stream) {
-                    return this.encode(
-                        InternalValueDataType.TYPE_STREAM,
-                        DataType.SimpleString
-                    );
+                    return {
+                        data: InternalValueDataType.TYPE_STREAM,
+                        dataType: DataType.SimpleString,
+                    };
                 }
 
-                return this.encode(
-                    InternalValueDataType.TYPE_NONE,
-                    DataType.SimpleString
-                );
+                return {
+                    data: InternalValueDataType.TYPE_NONE,
+                    dataType: DataType.SimpleString,
+                };
             } else {
-                return this.encode(
-                    this.getEncoder().getDataType(data),
-                    DataType.SimpleString
-                );
+                return {
+                    data: this.getEncoder().getDataType(data),
+                    dataType: DataType.SimpleString,
+                };
             }
         }
         return null;

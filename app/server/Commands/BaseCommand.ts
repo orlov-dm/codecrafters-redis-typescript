@@ -2,6 +2,11 @@ import type { Encoder } from '../../data/Encoder';
 import type { Data, DataType, InternalValueType } from '../../data/types';
 import { Storage } from '../../data/Storage';
 
+export interface CommandResponse {
+    data: InternalValueType;
+    dataType?: DataType;
+}
+
 export abstract class BaseCommand {
     constructor(
         private readonly encoder: Encoder,
@@ -9,13 +14,16 @@ export abstract class BaseCommand {
         private readonly commandData: Data[] = []
     ) {}
 
-    public abstract process(): Promise<string | null>;
+    public abstract process(): Promise<CommandResponse | null>;
+    public async processMulti(): Promise<CommandResponse[] | null> {
+        return null;
+    }
 
     protected encode(
         data: InternalValueType | null,
         enforceDataType?: DataType
     ): string {
-        return this.encoder.encode(data, enforceDataType);
+        return this.encoder.encode(data, { enforceDataType });
     }
 
     protected getEncoder() {

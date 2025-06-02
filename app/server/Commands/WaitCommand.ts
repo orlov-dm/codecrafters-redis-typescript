@@ -2,7 +2,7 @@ import type { Encoder } from '../../data/Encoder';
 import { isString } from '../../data/helpers';
 import type { Storage } from '../../data/Storage';
 import { DataType, type Data } from '../../data/types';
-import { BaseCommand } from './BaseCommand';
+import { BaseCommand, type CommandResponse } from './BaseCommand';
 
 export class WaitCommand extends BaseCommand {
     constructor(
@@ -16,7 +16,8 @@ export class WaitCommand extends BaseCommand {
     ) {
         super(encoder, storage, commandData);
     }
-    public async process(): Promise<string | null> {
+
+    public async process(): Promise<CommandResponse | null> {
         const [numReplicas, timeout] = this.getData();
         console.log('WAIT_CMD ', numReplicas, timeout);
 
@@ -25,7 +26,7 @@ export class WaitCommand extends BaseCommand {
                 Number(numReplicas.value),
                 Number(timeout.value)
             );
-            return this.encode(acks, DataType.Integer);
+            return { data: acks, dataType: DataType.Integer };
         }
         return null;
     }

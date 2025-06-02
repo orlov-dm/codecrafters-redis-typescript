@@ -1,9 +1,12 @@
 import { DataType } from '../../data/types';
 import { Responses } from '../const';
-import { BaseCommand } from './BaseCommand';
+import { BaseCommand, type CommandResponse } from './BaseCommand';
 
 export class PingCommand extends BaseCommand {
-    public async process(): Promise<string | null> {
-        return this.encode(Responses.RESPONSE_PONG, DataType.SimpleString);
+    public async process(): Promise<CommandResponse | null> {
+        return {
+            data: Responses.RESPONSE_PONG,
+            dataType: DataType.SimpleString,
+        };
     }
 }

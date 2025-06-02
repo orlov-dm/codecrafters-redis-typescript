@@ -3,7 +3,7 @@ import type { Storage } from '../../data/Storage';
 import { isString } from '../../data/helpers';
 import type { Entry } from '../../data/Stream';
 import type { Data, InternalValueType } from '../../data/types';
-import { BaseCommand } from './BaseCommand';
+import { BaseCommand, type CommandResponse } from './BaseCommand';
 import { isNull } from 'util';
 
 export class XReadCommand extends BaseCommand {
@@ -12,7 +12,7 @@ export class XReadCommand extends BaseCommand {
         super(encoder, storage, commandData);
     }
 
-    public async process(): Promise<string | null> {
+    public async process(): Promise<CommandResponse | null> {
         const data = this.getData();
         const streamsIndex = data.findIndex((value) => {
             if (!isString(value)) {
@@ -79,7 +79,9 @@ export class XReadCommand extends BaseCommand {
                     return this.encodeStream(streamKey, encodedEntries);
                 })
                 .filter((encodedStream) => !!encodedStream);
-            return this.encode(encodedRange.length ? encodedRange : null);
+            return {
+                data: encodedRange.length ? encodedRange : null,
+            };
         }
         return null;
     }

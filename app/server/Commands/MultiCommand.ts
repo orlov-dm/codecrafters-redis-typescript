@@ -2,7 +2,7 @@ import type { Encoder } from '../../data/Encoder';
 import type { Storage } from '../../data/Storage';
 import type { Data } from '../../data/types';
 import { Responses } from '../const';
-import { BaseCommand } from './BaseCommand';
+import { BaseCommand, type CommandResponse } from './BaseCommand';
 
 export class MultiCommand extends BaseCommand {
     constructor(
@@ -13,8 +13,10 @@ export class MultiCommand extends BaseCommand {
     ) {
         super(encoder, storage, commandData);
     }
-    public async process(): Promise<string | null> {
+    public async process(): Promise<CommandResponse | null> {
         this.onMultiStart();
-        return this.encode(Responses.RESPONSE_OK);
+        return {
+            data: Responses.RESPONSE_OK,
+        };
     }
 }

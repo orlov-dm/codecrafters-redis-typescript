@@ -4,7 +4,7 @@ import { isString } from '../../data/helpers';
 import { DELIMITER, type Data } from '../../data/types';
 import { Command } from '../const';
 import type { ServerConfig } from '../Server';
-import { BaseCommand } from './BaseCommand';
+import { BaseCommand, type CommandResponse } from './BaseCommand';
 
 export class InfoCommand extends BaseCommand {
     constructor(
@@ -18,7 +18,7 @@ export class InfoCommand extends BaseCommand {
         super(encoder, storage, commandData);
     }
 
-    public async process(): Promise<string | null> {
+    public async process(): Promise<CommandResponse | null> {
         const [subCmdData] = this.getData();
         if (
             isString(subCmdData) &&
@@ -30,7 +30,9 @@ export class InfoCommand extends BaseCommand {
                 `master_replid:${this.serverId}`,
                 `master_repl_offset:${this.replicationOffset}`,
             ];
-            return this.encode(info.join(DELIMITER));
+            return {
+                data: info.join(DELIMITER),
+            };
         }
         return null;
     }

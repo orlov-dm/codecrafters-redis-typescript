@@ -3,7 +3,7 @@ import { isString } from '../../data/helpers';
 import type { Data } from '../../data/types';
 import { Command, ConfigArgs } from '../const';
 import type { ServerConfig } from '../Server';
-import { BaseCommand } from './BaseCommand';
+import { BaseCommand, type CommandResponse } from './BaseCommand';
 import { Storage } from '../../data/Storage';
 
 export class ConfigCommand extends BaseCommand {
@@ -16,7 +16,7 @@ export class ConfigCommand extends BaseCommand {
         super(encoder, storage, commandData);
     }
 
-    public async process(): Promise<string | null> {
+    public async process(): Promise<CommandResponse | null> {
         const [subCmdData, keyData] = this.getData();
         if (
             isString(subCmdData) &&
@@ -25,12 +25,13 @@ export class ConfigCommand extends BaseCommand {
         ) {
             switch (keyData.value?.toLowerCase()) {
                 case ConfigArgs.DIR:
-                    return this.encode([ConfigArgs.DIR, this.config.directory]);
+                    return {
+                        data: [ConfigArgs.DIR, this.config.directory],
+                    };
                 case ConfigArgs.DB_FILENAME:
-                    return this.encode([
-                        ConfigArgs.DB_FILENAME,
-                        this.config.dbFilename,
-                    ]);
+                    return {
+                        data: [ConfigArgs.DB_FILENAME, this.config.dbFilename],
+                    };
             }
         }
 

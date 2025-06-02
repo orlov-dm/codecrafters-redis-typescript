@@ -5,7 +5,7 @@ import type { Storage } from '../../data/Storage';
 import { DataType, DELIMITER, type Data } from '../../data/types';
 import { RDBStorage } from '../../rdb/const';
 import { Responses, UNKNOWN } from '../const';
-import { BaseCommand } from './BaseCommand';
+import { BaseCommand, type CommandResponse } from './BaseCommand';
 
 export class PsyncCommand extends BaseCommand {
     constructor(
@@ -18,7 +18,8 @@ export class PsyncCommand extends BaseCommand {
     ) {
         super(encoder, storage, commandData);
     }
-    public async process(): Promise<string | null> {
+
+    public async process(): Promise<CommandResponse | null> {
         const [replIdData, replOffsetData] = this.getData();
 
         if (
@@ -48,9 +49,9 @@ export class PsyncCommand extends BaseCommand {
             return null;
         }
 
-        return this.encode(
-            `${replIdData.type} '${replIdData.value}' , ${replOffsetData.type} '${replOffsetData.value}'`,
-            DataType.SimpleString
-        );
+        return {
+            data: `${replIdData.type} '${replIdData.value}' , ${replOffsetData.type} '${replOffsetData.value}'`,
+            dataType: DataType.SimpleString,
+        };
     }
 }
