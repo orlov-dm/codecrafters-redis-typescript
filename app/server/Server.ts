@@ -27,6 +27,7 @@ import { DiscardCommand } from './Commands/transactions/DiscardCommand';
 import { RpushCommand } from './Commands/lists/RpushCommand';
 import { LrangeCommand } from './Commands/lists/LrangeCommand';
 import { LpushCommand } from './Commands/lists/LpushCommand';
+import { LlenCommand } from './Commands/lists/LlenCommand';
 
 export interface ServerConfig {
     port: number;
@@ -362,6 +363,14 @@ export class Server {
                 }
                 case Command.LRANGE_CMD: {
                     commandResponse = await new LrangeCommand(
+                        this.encoder,
+                        this.storage,
+                        rest
+                    ).process();
+                    break;
+                }
+                case Command.LLEN_CMD: {
+                    commandResponse = await new LlenCommand(
                         this.encoder,
                         this.storage,
                         rest

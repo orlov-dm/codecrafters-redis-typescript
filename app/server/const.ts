@@ -31,6 +31,7 @@ export enum Command {
     RPUSH_CMD = 'RPUSH',
     LPUSH_CMD = 'LPUSH',
     LRANGE_CMD = 'LRANGE',
+    LLEN_CMD = 'LLEN',
 }
 
 export enum ConfigArgs {
