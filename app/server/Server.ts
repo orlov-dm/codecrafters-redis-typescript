@@ -28,6 +28,7 @@ import { RpushCommand } from './Commands/lists/RpushCommand';
 import { LrangeCommand } from './Commands/lists/LrangeCommand';
 import { LpushCommand } from './Commands/lists/LpushCommand';
 import { LlenCommand } from './Commands/lists/LlenCommand';
+import { LpopCommand } from './Commands/lists/LpopCommand';
 
 export interface ServerConfig {
     port: number;
@@ -371,6 +372,14 @@ export class Server {
                 }
                 case Command.LLEN_CMD: {
                     commandResponse = await new LlenCommand(
+                        this.encoder,
+                        this.storage,
+                        rest
+                    ).process();
+                    break;
+                }
+                case Command.LPOP_CMD: {
+                    commandResponse = await new LpopCommand(
                         this.encoder,
                         this.storage,
                         rest

@@ -249,4 +249,12 @@ export class Storage {
     public getListSize(listKey: string) {
         return this.lists.get(listKey)?.length || 0;
     }
+
+    public listPop(listKey: string): string | null {
+        if (!this.lists.has(listKey)) {
+            return null;
+        }
+        const list = this.lists.get(listKey)!;
+        return list.shift() ?? null;
+    }
 }
