@@ -251,10 +251,21 @@ export class Storage {
     }
 
     public listPop(listKey: string): string | null {
+        const values = this.listPopMultiple(listKey, 1);
+        return values ? values[0] : null;
+    }
+
+    public listPopMultiple(listKey: string, count: number): string[] | null {
         if (!this.lists.has(listKey)) {
             return null;
         }
+
         const list = this.lists.get(listKey)!;
-        return list.shift() ?? null;
+        let needToPop = Math.min(list.length, count);
+
+        const values = list.slice(0, needToPop);
+        this.lists.set(listKey, list.slice(needToPop));
+
+        return values;
     }
 }
