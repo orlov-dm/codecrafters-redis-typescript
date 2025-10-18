@@ -201,11 +201,11 @@ export class Storage {
         this.onStreamAddListeners.set(streamKey, [...listeners, callback]);
     }
 
-    public addListValue(listKey: string, listValue: string) {
+    public addListValues(listKey: string, listValues: string[]) {
         if (!this.lists.has(listKey)) {
             this.lists.set(listKey, []);
         }
-        this.lists.get(listKey)?.push(listValue);
+        this.lists.get(listKey)?.push(...listValues);
     }
 
     public getListSize(listKey: string) {
