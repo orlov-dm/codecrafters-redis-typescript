@@ -208,6 +208,27 @@ export class Storage {
         this.lists.get(listKey)?.push(...listValues);
     }
 
+    public getListValues(
+        listKey: string,
+        startIndex: number,
+        endIndex: number
+    ): string[] {
+        if (!this.lists.has(listKey)) {
+            return [];
+        }
+        if (startIndex > endIndex) {
+            return [];
+        }
+
+        const listLen = this.getListSize(listKey);
+        if (startIndex >= listLen) {
+            return [];
+        }
+
+        const list = this.lists.get(listKey)!;
+        return list.slice(startIndex, Math.min(endIndex, listLen - 1) + 1);
+    }
+
     public getListSize(listKey: string) {
         return this.lists.get(listKey)?.length || 0;
     }
