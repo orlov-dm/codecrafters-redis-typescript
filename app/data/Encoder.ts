@@ -31,14 +31,14 @@ export class Encoder {
         let parts;
         if (data === null) {
             return (
-                this.parseNull().join(DELIMITER) +
+                this.parseNull(enforceDataType).join(DELIMITER) +
                 (needEndDelimiter ? DELIMITER : '')
             );
         }
         switch (typeof data) {
             case 'string': {
                 let dataType: DataType = DataType.BulkString;
-                if (enforceDataType) {
+                if (enforceDataType !== null) {
                     if (Encoder.isStringDataType(enforceDataType)) {
                         dataType = enforceDataType;
                     } else {
@@ -66,7 +66,7 @@ export class Encoder {
             }
             case 'number': {
                 let dataType: DataType = DataType.BulkString;
-                if (enforceDataType) {
+                if (enforceDataType !== null) {
                     if (
                         Encoder.isStringDataType(enforceDataType) ||
                         Encoder.isNumberDataType(enforceDataType)
@@ -115,7 +115,7 @@ export class Encoder {
         enforceDataType: DataType | null = null
     ): string[] {
         let parts: string[] = [];
-        if (enforceDataType) {
+        if (enforceDataType !== null) {
             console.warn(
                 'Encoder: enforced data type is set for array, not supported'
             );
@@ -141,8 +141,9 @@ export class Encoder {
         return parts;
     }
 
-    private parseNull() {
-        return [DATA_PREFIXES_CONFIG[DataType.BulkString].prefix + '-1'];
+    private parseNull(dataType: DataType | null) {
+        const resultDataType = dataType ?? DataType.BulkString;
+        return [DATA_PREFIXES_CONFIG[resultDataType].prefix + '-1'];
     }
 
     public getDataType(data: InternalValueType): InternalValueDataType {

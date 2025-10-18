@@ -3,7 +3,7 @@ const LF = '\n';
 export const DELIMITER = `${CR}${LF}`;
 
 export enum DataType {
-    SimpleString,
+    SimpleString = 1,
     SimpleError,
     Integer,
     BulkString,

@@ -2,7 +2,11 @@ import type { Encoder } from '../../../data/Encoder';
 import type { Storage } from '../../../data/Storage';
 import { isString } from '../../../data/helpers';
 import type { Entry } from '../../../data/Stream';
-import type { Data, InternalValueType } from '../../../data/types';
+import {
+    DataType,
+    type Data,
+    type InternalValueType,
+} from '../../../data/types';
 import { BaseCommand, type CommandResponse } from '../BaseCommand';
 import { isNull } from 'util';
 
@@ -79,9 +83,16 @@ export class XReadCommand extends BaseCommand {
                     return this.encodeStream(streamKey, encodedEntries);
                 })
                 .filter((encodedStream) => !!encodedStream);
-            return {
-                data: encodedRange.length ? encodedRange : null,
-            };
+            if (encodedRange.length) {
+                return {
+                    data: encodedRange,
+                };
+            } else {
+                return {
+                    data: null,
+                    dataType: DataType.Array,
+                };
+            }
         }
         return null;
     }
