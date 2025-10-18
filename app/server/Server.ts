@@ -29,6 +29,7 @@ import { LrangeCommand } from './Commands/lists/LrangeCommand';
 import { LpushCommand } from './Commands/lists/LpushCommand';
 import { LlenCommand } from './Commands/lists/LlenCommand';
 import { LpopCommand } from './Commands/lists/LpopCommand';
+import { BlpopCommand } from './Commands/lists/BlpopCommand';
 
 export interface ServerConfig {
     port: number;
@@ -380,6 +381,14 @@ export class Server {
                 }
                 case Command.LPOP_CMD: {
                     commandResponse = await new LpopCommand(
+                        this.encoder,
+                        this.storage,
+                        rest
+                    ).process();
+                    break;
+                }
+                case Command.BLPOP_CMD: {
+                    commandResponse = await new BlpopCommand(
                         this.encoder,
                         this.storage,
                         rest

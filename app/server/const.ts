@@ -33,6 +33,7 @@ export enum Command {
     LRANGE_CMD = 'LRANGE',
     LLEN_CMD = 'LLEN',
     LPOP_CMD = 'LPOP',
+    BLPOP_CMD = 'BLPOP',
 }
 
 export enum ConfigArgs {
