@@ -208,6 +208,13 @@ export class Storage {
         this.lists.get(listKey)?.push(...listValues);
     }
 
+    public prependListValues(listKey: string, listValues: string[]) {
+        if (!this.lists.has(listKey)) {
+            this.lists.set(listKey, []);
+        }
+        this.lists.get(listKey)?.unshift(...listValues.reverse());
+    }
+
     public getListValues(
         listKey: string,
         initialStartIndex: number,

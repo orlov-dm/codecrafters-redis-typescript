@@ -29,6 +29,7 @@ export enum Command {
     DISCARD_CMD = 'DISCARD',
     EXEC_CMD = 'EXEC',
     RPUSH_CMD = 'RPUSH',
+    LPUSH_CMD = 'LPUSH',
     LRANGE_CMD = 'LRANGE',
 }
 
