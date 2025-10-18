@@ -28,6 +28,7 @@ export enum Command {
     MULTI_CMD = 'MULTI',
     DISCARD_CMD = 'DISCARD',
     EXEC_CMD = 'EXEC',
+    RPUSH_CMD = 'RPUSH',
 }
 
 export enum ConfigArgs {

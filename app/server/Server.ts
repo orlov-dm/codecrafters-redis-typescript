@@ -24,6 +24,7 @@ import { MultiCommand } from './Commands/transactions/MultiCommand';
 import { ExecCommand } from './Commands/transactions/ExecCommand';
 import type { CommandResponse } from './Commands/BaseCommand';
 import { DiscardCommand } from './Commands/transactions/DiscardCommand';
+import { RpushCommand } from './Commands/lists/RpushCommand';
 
 export interface ServerConfig {
     port: number;
@@ -339,6 +340,14 @@ export class Server {
                             reply = this.encoder.encodeArray(encodeData);
                         }
                     }
+                    break;
+                }
+                case Command.RPUSH_CMD: {
+                    commandResponse = await new RpushCommand(
+                        this.encoder,
+                        this.storage,
+                        rest
+                    ).process();
                     break;
                 }
             }

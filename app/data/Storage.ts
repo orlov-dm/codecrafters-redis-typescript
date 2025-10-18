@@ -21,6 +21,7 @@ export class Storage {
     private data: Map<string, InternalValueType> = new Map();
     private expiry: Map<string, number> = new Map();
     private streams: Map<string, Stream> = new Map();
+    private lists: Map<string, string[]> = new Map();
     private readonly rdbStorageSaver: RDBStorageSaver | null = null;
     private readonly onStreamAddListeners: Map<string, StreamAddListener[]> =
         new Map();
@@ -198,5 +199,16 @@ export class Storage {
             return;
         }
         this.onStreamAddListeners.set(streamKey, [...listeners, callback]);
+    }
+
+    public addListValue(listKey: string, listValue: string) {
+        if (!this.lists.has(listKey)) {
+            this.lists.set(listKey, []);
+        }
+        this.lists.get(listKey)?.push(listValue);
+    }
+
+    public getListSize(listKey: string) {
+        return this.lists.get(listKey)?.length || 0;
     }
 }
