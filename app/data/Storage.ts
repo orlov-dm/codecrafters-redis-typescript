@@ -210,18 +210,28 @@ export class Storage {
 
     public getListValues(
         listKey: string,
-        startIndex: number,
-        endIndex: number
+        initialStartIndex: number,
+        initialEndIndex: number
     ): string[] {
         if (!this.lists.has(listKey)) {
             return [];
         }
-        if (startIndex > endIndex) {
+
+        const listLen = this.getListSize(listKey);
+        const startIndex =
+            initialStartIndex < 0
+                ? Math.max(0, listLen + initialStartIndex)
+                : initialStartIndex;
+        const endIndex =
+            initialEndIndex < 0
+                ? Math.max(0, listLen + initialEndIndex)
+                : initialEndIndex;
+
+        if (startIndex >= listLen) {
             return [];
         }
 
-        const listLen = this.getListSize(listKey);
-        if (startIndex >= listLen) {
+        if (startIndex > endIndex) {
             return [];
         }
 
