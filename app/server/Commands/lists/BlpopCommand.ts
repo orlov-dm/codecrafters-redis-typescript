@@ -1,4 +1,5 @@
 import { isString } from '../../../data/helpers';
+import { DataType } from '../../../data/types';
 import { BaseCommand, type CommandResponse } from '../BaseCommand';
 
 export class BlpopCommand extends BaseCommand {
@@ -19,10 +20,16 @@ export class BlpopCommand extends BaseCommand {
             };
         }
 
-        await this.waitForValue(listKey, timeoutMs);
+        const waitResult = await this.waitForValue(listKey, timeoutMs);
 
+        if (waitResult) {
+            return {
+                data: [listKey, this.getStorage().listPop(listKey)],
+            };
+        }
         return {
-            data: [listKey, this.getStorage().listPop(listKey)],
+            data: null,
+            dataType: DataType.Array,
         };
     }
 
