@@ -1,11 +1,16 @@
 import { RDBStorageSaver } from '../rdb/RDBStorageSaver';
 import { isNumber, isString } from './helpers';
+import { StoragePubSub } from './StoragePubSub';
 import { Stream, StreamErrorCode, type Entry, type KeyValue } from './Stream';
 import { type Data, type InternalValueType } from './types';
 
 export interface PersistenceConfig {
     dir: string;
     dbFilename: string;
+}
+
+export interface PluginsConfig {
+    pubSub: boolean;
 }
 
 export interface StorageState {
@@ -22,14 +27,18 @@ export class Storage {
     private expiry: Map<string, number> = new Map();
     private streams: Map<string, Stream> = new Map();
     private lists: Map<string, string[]> = new Map();
+    private pubSub: StoragePubSub | null = null;
     private readonly rdbStorageSaver: RDBStorageSaver | null = null;
     private readonly onStreamAddListeners: Map<string, StreamAddListener[]> =
         new Map();
 
-    constructor(persistenceConfig?: PersistenceConfig) {
+    constructor(persistenceConfig?: PersistenceConfig, pluginsConfig?: PluginsConfig) {
         console.log('Storage config', persistenceConfig);
         if (persistenceConfig) {
             this.rdbStorageSaver = new RDBStorageSaver(persistenceConfig);
+        }
+        if (pluginsConfig?.pubSub) {
+            this.pubSub = new StoragePubSub();
         }
     }
 
@@ -267,5 +276,12 @@ export class Storage {
         this.lists.set(listKey, list.slice(needToPop));
 
         return values;
+    }
+
+    public subscribe(channelName: string): number {
+        if (!this.pubSub) {
+            return 0;
+        }
+        return this.pubSub.subscribe(channelName);
     }
 }

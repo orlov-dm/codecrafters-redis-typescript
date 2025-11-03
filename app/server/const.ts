@@ -34,6 +34,9 @@ export enum Command {
     LLEN_CMD = 'LLEN',
     LPOP_CMD = 'LPOP',
     BLPOP_CMD = 'BLPOP',
+
+    // PUB SUB section
+    SUBSCRIBE_CMD = 'SUBSCRIBE',
 }
 
 export enum ConfigArgs {
@@ -47,6 +50,7 @@ export namespace Responses {
     export const RESPONSE_FULLRESYNC = 'FULLRESYNC';
     export const RESPONSE_ACK = 'ACK';
     export const RESPONSE_QUEUED = 'QUEUED';
+    export const RESPONSE_SUBSCRIBE = 'subscribe';
 }
 
 export const UNKNOWN = '?';

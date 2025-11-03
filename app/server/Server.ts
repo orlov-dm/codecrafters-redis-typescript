@@ -30,6 +30,7 @@ import { LpushCommand } from './Commands/lists/LpushCommand';
 import { LlenCommand } from './Commands/lists/LlenCommand';
 import { LpopCommand } from './Commands/lists/LpopCommand';
 import { BlpopCommand } from './Commands/lists/BlpopCommand';
+import { PubSubCommandFactory } from './Commands/pubsub/PubSubCommandHandler';
 
 export interface ServerConfig {
     port: number;
@@ -63,6 +64,10 @@ export class Server {
                 this.onDataHandler(connection, data)
             );
             connection.on('close', () => {
+                this.commandQueue.delete(connection);
+                if (connection.remotePort && this.replicaConnections.has(connection.remotePort) && this.replicaConnections.get(connection.remotePort) === connection) {
+                    this.replicaConnections.delete(connection.remotePort!);
+                }
                 connection.end();
             });
         });
@@ -341,6 +346,7 @@ export class Server {
                                 commandResponses.map((response) => ({
                                     data: response.data,
                                     dataType: response.dataType,
+                                    dataTypePerArrayItem: response.dataTypePerArrayItem,
                                 }));
                             reply = this.encoder.encodeArray(encodeData);
                         }
@@ -395,11 +401,25 @@ export class Server {
                     ).process();
                     break;
                 }
+                default: {
+                    const pubSubCommand = PubSubCommandFactory.createCommand(
+                        command.value,
+                        this.encoder,
+                        this.storage,
+                        rest
+                    );
+                    if (pubSubCommand) {
+                        commandResponse = await pubSubCommand.process();
+                    }
+                    break;
+                }          
             }
+            
 
             if (commandResponse && !isEnqueued) {
                 reply = this.encoder.encode(commandResponse.data, {
                     enforceDataType: commandResponse.dataType,
+                    enforceDataTypePerArrayItem: commandResponse.dataTypePerArrayItem ?? undefined,
                 });
             }
 

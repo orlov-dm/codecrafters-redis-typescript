@@ -9,7 +9,7 @@ import {
 interface EncodeOptions {
     needEndDelimiter?: boolean;
     enforceDataType?: DataType;
-    enforceDataTypePerArrayItem?: Map<string, DataType>;
+    enforceDataTypePerArrayItem?: DataType[];
 }
 
 export interface EncodeData {
@@ -26,7 +26,7 @@ export class Encoder {
             needEndDelimiter: true,
         }
     ): string {
-        const { needEndDelimiter = true, enforceDataType = null } =
+        const { needEndDelimiter = true, enforceDataType = null, enforceDataTypePerArrayItem = null } =
             encodeOptions;
         let parts;
         if (data === null) {
@@ -56,7 +56,9 @@ export class Encoder {
                 if (Array.isArray(data)) {
                     parts = this.parseArray(
                         data.map((item) => ({ data: item })),
-                        enforceDataType
+                        enforceDataType,
+                        enforceDataTypePerArrayItem
+
                     );
                 } else {
                     console.error('data', data);
@@ -104,15 +106,16 @@ export class Encoder {
             needEndDelimiter: true,
         }
     ) {
-        const { needEndDelimiter = true, enforceDataType = null } =
+        const { needEndDelimiter = true, enforceDataType = null, enforceDataTypePerArrayItem = null } =
             encodeOptions;
-        const parts = this.parseArray(data, enforceDataType);
+        const parts = this.parseArray(data, enforceDataType, enforceDataTypePerArrayItem);
         return parts.join(DELIMITER) + (needEndDelimiter ? DELIMITER : '');
     }
 
     private parseArray(
         data: EncodeData[],
-        enforceDataType: DataType | null = null
+        enforceDataType: DataType | null = null,
+        enforceDataTypePerArrayItem: DataType[] | null = null
     ): string[] {
         let parts: string[] = [];
         if (enforceDataType !== null) {
@@ -126,10 +129,10 @@ export class Encoder {
             parts = [
                 prefix + arr.length.toString(),
                 ...(data
-                    ? data.map((item) => {
+                    ? data.map((item, i) => {
                           return this.encode(item.data, {
                               needEndDelimiter: false,
-                              enforceDataType: item.dataType,
+                              enforceDataType: enforceDataTypePerArrayItem?.[i] ?? item.dataType,
                           });
                       })
                     : []),

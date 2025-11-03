@@ -13,6 +13,8 @@ const args = argumentsReader.getArguments();
 const storage: Storage = new Storage({
     dir: args.dir,
     dbFilename: args.dbfilename,
+}, {
+    pubSub: true
 });
 storage.init();
 

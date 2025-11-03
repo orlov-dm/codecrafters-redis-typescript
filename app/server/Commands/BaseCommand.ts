@@ -5,6 +5,7 @@ import { Storage } from '../../data/Storage';
 export interface CommandResponse {
     data: InternalValueType;
     dataType?: DataType;
+    dataTypePerArrayItem?: DataType[];
 }
 
 export abstract class BaseCommand {
