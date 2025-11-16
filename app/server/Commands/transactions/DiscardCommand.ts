@@ -25,6 +25,7 @@ export class DiscardCommand extends BaseCommand {
         this.onDiscard();
         return {
             data: Responses.RESPONSE_OK,
+            dataType: DataType.SimpleString,
         };
     }
 }
