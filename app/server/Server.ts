@@ -406,7 +406,8 @@ export class Server {
                         command.value,
                         this.encoder,
                         this.storage,
-                        rest
+                        rest,
+                        connection
                     );
                     if (pubSubCommand) {
                         commandResponse = await pubSubCommand.process();

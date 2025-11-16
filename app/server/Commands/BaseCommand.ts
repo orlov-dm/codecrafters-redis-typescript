@@ -12,7 +12,7 @@ export abstract class BaseCommand {
     constructor(
         private readonly encoder: Encoder,
         private readonly storage: Storage,
-        private readonly commandData: Data[] = []
+        private readonly commandData: Data[] = [],
     ) {}
 
     public abstract process(): Promise<CommandResponse | null>;

@@ -4,20 +4,17 @@ import type { Data } from "../../../data/types";
 import { Command } from "../../const";
 import type { BaseCommand } from "../BaseCommand";
 import { SubscribeCommand } from "./SubscribeCommand";
-
+import { Socket } from 'net';
 
 
 export class PubSubCommandFactory {
-    public static createCommand(command: string, encoder: Encoder, storage: Storage, commandData: Data[]): BaseCommand | null {
+    public static createCommand(command: string, encoder: Encoder, storage: Storage, commandData: Data[], connection: Socket): BaseCommand | null {
         switch (command) {
             case Command.SUBSCRIBE_CMD: {
-                return new SubscribeCommand(encoder, storage, commandData);
+                return new SubscribeCommand(encoder, storage, commandData, connection);
             }
         }
 
         return null;
-    }
-    public static createSubscribeCommand(encoder: Encoder, storage: Storage, commandData: Data[]): SubscribeCommand {
-        return new SubscribeCommand(encoder, storage, commandData);
     }
 }

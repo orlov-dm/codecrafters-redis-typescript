@@ -3,6 +3,7 @@ import { isNumber, isString } from './helpers';
 import { StoragePubSub } from './StoragePubSub';
 import { Stream, StreamErrorCode, type Entry, type KeyValue } from './Stream';
 import { type Data, type InternalValueType } from './types';
+import { Socket } from 'net';
 
 export interface PersistenceConfig {
     dir: string;
@@ -278,10 +279,10 @@ export class Storage {
         return values;
     }
 
-    public subscribe(channelName: string): number {
+    public subscribe(connection: Socket, channelName: string): number {
         if (!this.pubSub) {
             return 0;
         }
-        return this.pubSub.subscribe(channelName);
+        return this.pubSub.subscribe(connection, channelName);
     }
 }

@@ -4,9 +4,17 @@ import { isString } from "../../../data/helpers";
 import { DataType, type Data } from "../../../data/types";
 import { Responses } from "../../const";
 import { BaseCommand, type CommandResponse } from "../BaseCommand";
-
+import { Socket } from 'net';
 
 export class SubscribeCommand extends BaseCommand {
+    constructor(
+        encoder: Encoder,
+        storage: Storage,
+        commandData: Data[] = [],
+        private readonly connection: Socket,        
+    ) {
+        super(encoder, storage, commandData);
+    }
 
     public async process(): Promise<CommandResponse | null> {
         const [channelName] = this.getData();
@@ -14,7 +22,7 @@ export class SubscribeCommand extends BaseCommand {
             return null;
         }
 
-        const subscribersCount = this.getStorage().subscribe(channelName.value);
+        const subscribersCount = this.getStorage().subscribe(this.connection, channelName.value);
 
         return {
             data: [

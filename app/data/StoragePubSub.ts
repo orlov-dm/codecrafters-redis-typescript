@@ -1,13 +1,17 @@
 
+import { Socket } from 'net';
 export class StoragePubSub {
-    private readonly subscribers: Map<string, number> = new Map();
+    private readonly subscribers: WeakMap<Socket, Set<string>> = new Map();
 
-    public subscribe(channelName: string): number {
-        if (!this.subscribers.has(channelName)) {
-            this.subscribers.set(channelName, 0);
+    public subscribe(connection: Socket, channelName: string): number {
+        if (!this.subscribers.has(connection)) {
+            this.subscribers.set(connection, new Set());
         }
-        const newCount = (this.subscribers.get(channelName) || 0) + 1;
-        this.subscribers.set(channelName, newCount);
-        return newCount;
+        const connectionChannels = this.subscribers.get(connection);
+        if (!connectionChannels) {
+            throw new Error('unhandled error');
+        }
+        connectionChannels.add(channelName);        
+        return connectionChannels.size;
     }
 }
