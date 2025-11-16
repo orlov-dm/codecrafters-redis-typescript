@@ -1,6 +1,7 @@
 import type { Encoder } from '../../../data/Encoder';
 import type { Storage } from '../../../data/Storage';
 import { DataType, type Data } from '../../../data/types';
+import { ErrorResponses } from '../../const';
 import type { CommandQueueContext } from '../../Server';
 import { BaseCommand, type CommandResponse } from '../BaseCommand';
 
@@ -25,7 +26,7 @@ export class ExecCommand extends BaseCommand {
         if (this.commands === null) {
             return [
                 {
-                    data: 'ERR EXEC without MULTI',
+                    data: ErrorResponses.RESPONSE_ERROR_EXEC_WITHOUT_MULTI,
                     dataType: DataType.SimpleError,
                 },
             ];

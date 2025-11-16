@@ -7,6 +7,7 @@ import {
 } from '../../../data/Stream';
 import { isString } from '../../../data/helpers';
 import { DataType, type Data } from '../../../data/types';
+import { ErrorResponses } from '../../const';
 import { BaseCommand, type CommandResponse } from '../BaseCommand';
 
 export class XAddCommand extends BaseCommand {
@@ -40,12 +41,12 @@ export class XAddCommand extends BaseCommand {
             } else {
                 if (errorCode === StreamErrorCode.ID_IS_SMALLER_OR_EQUAL) {
                     return {
-                        data: 'ERR The ID specified in XADD is equal or smaller than the target stream top item',
+                        data: ErrorResponses.RESPONSE_ERROR_XADD_ID_IS_SMALLER_OR_EQUAL,
                         dataType: DataType.SimpleError,
                     };
                 } else if (errorCode === StreamErrorCode.ID_IS_ZERO) {
                     return {
-                        data: 'ERR The ID specified in XADD must be greater than 0-0',
+                        data: ErrorResponses.RESPONSE_ERROR_XADD_ID_IS_ZERO,
                         dataType: DataType.SimpleError,
                     };
                 }

@@ -61,6 +61,11 @@ export namespace ErrorResponses {
     export const RESPONSE_ERROR_SUBSCRIBED_MODE = (commandValue: string, allowedCommands: string[]) => {
         return `ERR Can't execute '${commandValue}' in subscribed mode, allowed commands: ${allowedCommands.join(', ')}`;
     }
+    export const RESPONSE_ERROR_INCR_INVALID_INTEGER = 'ERR value is not an integer or out of range';
+    export const RESPONSE_ERROR_XADD_ID_IS_SMALLER_OR_EQUAL = 'ERR The ID specified in XADD is equal or smaller than the target stream top item';
+    export const RESPONSE_ERROR_XADD_ID_IS_ZERO = 'ERR The ID specified in XADD must be greater than 0-0';
+    export const RESPONSE_ERROR_EXEC_WITHOUT_MULTI = 'ERR EXEC without MULTI';
+    export const RESPONSE_ERROR_DISCARD_WITHOUT_MULTI = 'ERR DISCARD without MULTI';
 }
 
 export const UNKNOWN = '?';

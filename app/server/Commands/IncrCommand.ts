@@ -1,5 +1,6 @@
 import { isString } from '../../data/helpers';
 import { DataType } from '../../data/types';
+import { ErrorResponses } from '../const';
 import { BaseCommand, type CommandResponse } from './BaseCommand';
 
 export class IncrCommand extends BaseCommand {
@@ -10,7 +11,7 @@ export class IncrCommand extends BaseCommand {
             const value = this.getStorage().incr(key.value);
             if (value === null) {
                 return {
-                    data: 'ERR value is not an integer or out of range',
+                    data: ErrorResponses.RESPONSE_ERROR_INCR_INVALID_INTEGER,
                     dataType: DataType.SimpleError,
                 };
             }
