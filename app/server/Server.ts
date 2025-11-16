@@ -30,7 +30,7 @@ import { LpushCommand } from './Commands/lists/LpushCommand';
 import { LlenCommand } from './Commands/lists/LlenCommand';
 import { LpopCommand } from './Commands/lists/LpopCommand';
 import { BlpopCommand } from './Commands/lists/BlpopCommand';
-import { PubSubCommandFactory } from './Commands/pubsub/PubSubCommandHandler';
+import { PubSubCommandFactory } from './Commands/pubsub/PubSubCommandFactory';
 
 export interface ServerConfig {
     port: number;

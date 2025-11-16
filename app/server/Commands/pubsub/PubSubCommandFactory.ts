@@ -6,6 +6,7 @@ import type { BaseCommand } from "../BaseCommand";
 import { PublishCommand } from "./PublishCommand";
 import { SubscribeCommand } from "./SubscribeCommand";
 import { Socket } from 'net';
+import { UnsubscribeCommand } from "./UnsubscribeCommand";
 
 
 export class PubSubCommandFactory {
@@ -13,6 +14,9 @@ export class PubSubCommandFactory {
         switch (command) {
             case Command.SUBSCRIBE_CMD: {
                 return new SubscribeCommand(encoder, storage, commandData, connection);
+            }
+            case Command.UNSUBSCRIBE_CMD: {
+                return new UnsubscribeCommand(encoder, storage, commandData, connection);
             }
             case Command.PUBLISH_CMD: {
                 return new PublishCommand(encoder, storage, commandData, connection);

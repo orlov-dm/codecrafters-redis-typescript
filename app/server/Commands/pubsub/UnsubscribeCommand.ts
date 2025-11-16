@@ -3,7 +3,7 @@ import { DataType, type Data } from "../../../data/types";
 import { Responses } from "../../const";
 import { BaseCommand, type CommandResponse } from "../BaseCommand";
 
-export class SubscribeCommand extends BaseCommand {
+export class UnsubscribeCommand extends BaseCommand {
     public async process(): Promise<CommandResponse | null> {
         const [channelName] = this.getData();
         if (!isString(channelName)) {
@@ -14,11 +14,11 @@ export class SubscribeCommand extends BaseCommand {
         if (!connection) {
             return null;
         }
-        const channelsCount = this.getStorage().subscribe(connection, channelName.value);
+        const channelsCount = this.getStorage().unsubscribe(connection, channelName.value);
 
         return {
             data: [
-                Responses.RESPONSE_SUBSCRIBE,
+                Responses.RESPONSE_UNSUBSCRIBE,
                 channelName.value,
                 channelsCount,
             ],

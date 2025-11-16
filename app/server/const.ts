@@ -56,6 +56,7 @@ export namespace Responses {
     export const RESPONSE_ACK = 'ACK';
     export const RESPONSE_QUEUED = 'QUEUED';
     export const RESPONSE_SUBSCRIBE = 'subscribe';    
+    export const RESPONSE_UNSUBSCRIBE = 'unsubscribe';    
 }
 
 export namespace ErrorResponses {

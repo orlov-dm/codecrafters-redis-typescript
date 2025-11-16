@@ -286,6 +286,13 @@ export class Storage {
         return this.pubSub.subscribe(connection, channelName);
     }
 
+    public unsubscribe(connection: Socket, channelName: string): number {
+        if (!this.pubSub) {
+            return 0;
+        }
+        return this.pubSub.unsubscribe(connection, channelName);
+    }
+
     public isUserInSubscribedMode(connection: Socket): boolean {
         if (!this.pubSub) {
             return false;

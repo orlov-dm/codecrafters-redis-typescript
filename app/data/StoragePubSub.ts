@@ -23,7 +23,7 @@ export class StoragePubSub {
         return connectionChannels.size;
     }
 
-    public unsubscribe(connection: Socket, channelName: string): void {
+    public unsubscribe(connection: Socket, channelName: string): number {
         const connectionChannels = this.subscribers.get(connection);
         connectionChannels?.delete(channelName);
         
@@ -33,6 +33,8 @@ export class StoragePubSub {
         if (channelConnections?.size === 0) {
             this.channels.delete(channelName);
         }
+
+        return connectionChannels?.size || 0;
     }
 
     public getSubscribedChannels(connection: Socket): number {
