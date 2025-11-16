@@ -37,6 +37,10 @@ export enum Command {
 
     // PUB SUB section
     SUBSCRIBE_CMD = 'SUBSCRIBE',
+    UNSUBSCRIBE_CMD = 'UNSUBSCRIBE',
+    PSUBSCRIBE_CMD = 'PSUBSCRIBE',
+    PUNSUBSCRIBE_CMD = 'PUNSUBSCRIBE',
+    QUIT_CMD = 'QUIT',
 }
 
 export enum ConfigArgs {
@@ -50,7 +54,13 @@ export namespace Responses {
     export const RESPONSE_FULLRESYNC = 'FULLRESYNC';
     export const RESPONSE_ACK = 'ACK';
     export const RESPONSE_QUEUED = 'QUEUED';
-    export const RESPONSE_SUBSCRIBE = 'subscribe';
+    export const RESPONSE_SUBSCRIBE = 'subscribe';    
+}
+
+export namespace ErrorResponses {
+    export const RESPONSE_ERROR_SUBSCRIBED_MODE = (commandValue: string, allowedCommands: string[]) => {
+        return `ERR Can't execute '${commandValue}' in subscribed mode, allowed commands: ${allowedCommands.join(', ')}`;
+    }
 }
 
 export const UNKNOWN = '?';

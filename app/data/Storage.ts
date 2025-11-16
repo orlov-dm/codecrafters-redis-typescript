@@ -285,4 +285,11 @@ export class Storage {
         }
         return this.pubSub.subscribe(connection, channelName);
     }
+
+    public isUserInSubscribedMode(connection: Socket): boolean {
+        if (!this.pubSub) {
+            return false;
+        }
+        return this.pubSub.getSubscribedChannels(connection) > 0;
+    }
 }

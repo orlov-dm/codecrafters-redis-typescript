@@ -1,7 +1,7 @@
 
 import { Socket } from 'net';
 export class StoragePubSub {
-    private readonly subscribers: WeakMap<Socket, Set<string>> = new Map();
+    private readonly subscribers: WeakMap<Socket, Set<string>> = new WeakMap();
 
     public subscribe(connection: Socket, channelName: string): number {
         if (!this.subscribers.has(connection)) {
@@ -13,5 +13,9 @@ export class StoragePubSub {
         }
         connectionChannels.add(channelName);        
         return connectionChannels.size;
+    }
+
+    public getSubscribedChannels(connection: Socket): number {
+        return this.subscribers.get(connection)?.size || 0;
     }
 }

@@ -4,7 +4,7 @@ import { Storage } from '../data/Storage';
 import { CommandParser } from '../data/CommandParser';
 import { DataType, type Data } from '../data/types';
 import { isString } from '../data/helpers';
-import { Command, LOCALHOST, Responses } from './const';
+import { Command, ErrorResponses, LOCALHOST, Responses } from './const';
 import { PingCommand } from './Commands/PingCommand';
 import { EchoCommand } from './Commands/EchoCommand';
 import { SetCommand } from './Commands/SetCommand';
@@ -52,7 +52,7 @@ export class Server {
     private readonly replicaConnections: Map<number, net.Socket> = new Map();
     private replicaReplies: Map<number, number> = new Map();
     private replicaAckTimer: Timer | null = null;
-    private commandQueue: Map<net.Socket, CommandQueueContext[]> = new Map();
+    private commandQueue: WeakMap<net.Socket, CommandQueueContext[]> = new WeakMap();
     constructor(
         private readonly encoder: Encoder,
         private readonly commandParser: CommandParser,
@@ -139,6 +139,7 @@ export class Server {
                 return null;
             }
         }
+        
         let reply: string = '';
 
         if (isString(command)) {
@@ -146,8 +147,31 @@ export class Server {
                 console.warn('Empty string data');
                 return null;
             }
+
+            const commandValue = command.value.toUpperCase();
+            if (this.storage.isUserInSubscribedMode(connection)) {
+                const allowedCommands: string[] = [
+                    Command.SUBSCRIBE_CMD,
+                    Command.UNSUBSCRIBE_CMD,
+                    Command.PSUBSCRIBE_CMD,
+                    Command.PUNSUBSCRIBE_CMD,
+                    Command.PING_CMD,
+                    Command.QUIT_CMD,
+                ];
+
+                if (!allowedCommands.includes(commandValue)) {
+                    connection.write(
+                        this.encoder.encode(ErrorResponses.RESPONSE_ERROR_SUBSCRIBED_MODE(commandValue, allowedCommands), {
+                            enforceDataType: DataType.SimpleError,                            
+                        })
+                    );
+                    return null;
+                }
+
+            }
+
             let commandResponse: CommandResponse | null = null;
-            switch (command.value.toUpperCase()) {
+            switch (commandValue) {
                 case Command.PING_CMD: {
                     commandResponse = await new PingCommand(
                         this.encoder,
