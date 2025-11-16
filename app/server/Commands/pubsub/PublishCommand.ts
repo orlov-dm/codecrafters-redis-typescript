@@ -12,7 +12,11 @@ export class PublishCommand extends BaseCommand {
         const connections = this.getStorage().getSubscribedConnections(channelName.value);
         for (const connection of connections) {
             connection.write(
-                this.getEncoder().encode(message.value)
+                this.getEncoder().encode([
+                    'message',
+                    channelName.value,
+                    message.value,
+                ])
             )
         }
 
