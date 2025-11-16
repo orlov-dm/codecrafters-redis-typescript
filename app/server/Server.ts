@@ -149,7 +149,8 @@ export class Server {
             }
 
             const commandValue = command.value.toUpperCase();
-            if (this.storage.isUserInSubscribedMode(connection)) {
+            const isUserInSubscribedMode = this.storage.isUserInSubscribedMode(connection);
+            if (isUserInSubscribedMode) {
                 const allowedCommands: string[] = [
                     Command.SUBSCRIBE_CMD,
                     Command.UNSUBSCRIBE_CMD,
@@ -172,10 +173,12 @@ export class Server {
 
             let commandResponse: CommandResponse | null = null;
             switch (commandValue) {
-                case Command.PING_CMD: {
+                case Command.PING_CMD: {                    
                     commandResponse = await new PingCommand(
                         this.encoder,
-                        this.storage
+                        this.storage,
+                        rest,
+                        connection,
                     ).process();
                     break;
                 }

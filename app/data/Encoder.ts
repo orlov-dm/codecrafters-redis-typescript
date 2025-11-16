@@ -165,12 +165,8 @@ export class Encoder {
     }
 
     private parseString(data: string, dataType: DataType): string[] {
-        const str = data ?? '';
+        const str = data;
         const prefix = DATA_PREFIXES_CONFIG[dataType].prefix;
-        if (!str.length) {
-            return [prefix + '-1'];
-        }
-
         if (
             dataType === DataType.SimpleString ||
             dataType === DataType.SimpleError

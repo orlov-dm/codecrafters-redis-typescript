@@ -1,6 +1,7 @@
 import type { Encoder } from '../../data/Encoder';
 import type { Data, DataType, InternalValueType } from '../../data/types';
 import { Storage } from '../../data/Storage';
+import { Socket } from 'net';
 
 export interface CommandResponse {
     data: InternalValueType;
@@ -13,6 +14,7 @@ export abstract class BaseCommand {
         private readonly encoder: Encoder,
         private readonly storage: Storage,
         private readonly commandData: Data[] = [],
+        private readonly connection?: Socket,
     ) {}
 
     public abstract process(): Promise<CommandResponse | null>;
@@ -37,5 +39,9 @@ export abstract class BaseCommand {
 
     protected getStorage() {
         return this.storage;
+    }
+
+    protected getConnection() {
+        return this.connection;
     }
 }
