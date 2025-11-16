@@ -3,6 +3,7 @@ import type { Storage } from "../../../data/Storage";
 import type { Data } from "../../../data/types";
 import { Command } from "../../const";
 import type { BaseCommand } from "../BaseCommand";
+import { PublishCommand } from "./PublishCommand";
 import { SubscribeCommand } from "./SubscribeCommand";
 import { Socket } from 'net';
 
@@ -12,6 +13,9 @@ export class PubSubCommandFactory {
         switch (command) {
             case Command.SUBSCRIBE_CMD: {
                 return new SubscribeCommand(encoder, storage, commandData, connection);
+            }
+            case Command.PUBLISH_CMD: {
+                return new PublishCommand(encoder, storage, commandData, connection);
             }
         }
 

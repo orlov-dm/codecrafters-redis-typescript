@@ -68,6 +68,7 @@ export class Server {
                 if (connection.remotePort && this.replicaConnections.has(connection.remotePort) && this.replicaConnections.get(connection.remotePort) === connection) {
                     this.replicaConnections.delete(connection.remotePort!);
                 }
+                this.storage.cleanupConnection(connection);
                 connection.end();
             });
         });

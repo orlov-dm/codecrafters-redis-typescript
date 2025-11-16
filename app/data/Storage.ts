@@ -292,4 +292,17 @@ export class Storage {
         }
         return this.pubSub.getSubscribedChannels(connection) > 0;
     }
+
+    public getSubscribedConnections(channelName: string): Socket[] {
+        if (!this.pubSub) {
+            return [];
+        }
+        return this.pubSub.getSubscribedConnections(channelName);
+    }
+
+    public cleanupConnection(connection: Socket) {
+        if (this.pubSub) {
+            this.pubSub.cleanupConnection(connection);
+        }
+    }
 }
